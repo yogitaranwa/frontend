@@ -12,32 +12,36 @@ import * as ImagePicker from 'expo-image-picker';
 
 export default function HomeScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [paperWidth, setPaperWidth] = useState<number>(21.0); 
+  
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [responseData, setResponseData] = useState<any>(null);
 
-  // 1. Pick Image
+  // 1. Pick Image (Crop Feature Restored)
   const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      quality: 1,
-    });
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true, // Restored the cropping feature!
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      setResponseData(null); // Clear old results when picking a new image
+      if (!result.canceled) {
+        setSelectedImage(result.assets[0].uri);
+        setResponseData(null); 
+      }
+    } catch (error) {
+      console.log("Error picking image:", error);
+      alert("Something went wrong opening the gallery.");
     }
   };
 
-  // 2. The Bridge (Send to FastAPI)
+  // 2. The Bridge 
   const uploadImage = async () => {
     if (!selectedImage) return;
 
     setIsProcessing(true);
 
-    // Create a form data object to send the file
     let formData = new FormData();
-    
-    // In React Native, we format the URI for the backend like this
     let localUri = selectedImage;
     let filename = localUri.split('/').pop() || 'photo.jpg';
     let match = /\.(\w+)$/.exec(filename);
@@ -48,10 +52,11 @@ export default function HomeScreen() {
       name: filename,
       type: type
     } as any);
+    
+    formData.append('paper_width_cm', paperWidth.toString());
 
     try {
-      // NOTE: 10.0.2.2 is the standard loopback IP for Android Emulators.
-      // If using Expo Go on a REAL phone, replace this with your computer's local Wi-Fi IP address (e.g., http://192.168.x.x:8000/process-image/)
+      // WARNING: Make sure this matches your current Wi-Fi IP address!
       const SERVER_URL = 'http://172.27.128.1:8000/process-image/'; 
       
       const response = await fetch(SERVER_URL, {
@@ -67,7 +72,7 @@ export default function HomeScreen() {
       
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to connect to the server. Is FastAPI running?');
+      alert('Failed to connect to the server. Is FastAPI running on the right IP?');
     } finally {
       setIsProcessing(false);
     }
@@ -79,6 +84,7 @@ export default function HomeScreen() {
         <Text style={styles.title}>Reference Guide</Text>
       </View>
 
+      {/* Canvas Area */}
       <View style={styles.imageContainer}>
         {selectedImage ? (
           <Image source={{ uri: selectedImage }} style={styles.image} />
@@ -87,6 +93,35 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Paper Size Selector */}
+      <View style={styles.sizeSelectorContainer}>
+        <Text style={styles.sizeLabel}>Select Canvas Width:</Text>
+        <View style={styles.sizeButtonsRow}>
+          <TouchableOpacity 
+            style={[styles.sizeButton, paperWidth === 14.8 && styles.sizeButtonActive]} 
+            onPress={() => setPaperWidth(14.8)}
+          >
+            <Text style={[styles.sizeButtonText, paperWidth === 14.8 && styles.sizeButtonTextActive]}>A5</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.sizeButton, paperWidth === 21.0 && styles.sizeButtonActive]} 
+            onPress={() => setPaperWidth(21.0)}
+          >
+            <Text style={[styles.sizeButtonText, paperWidth === 21.0 && styles.sizeButtonTextActive]}>A4</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.sizeButton, paperWidth === 29.7 && styles.sizeButtonActive]} 
+            onPress={() => setPaperWidth(29.7)}
+          >
+            <Text style={[styles.sizeButtonText, paperWidth === 29.7 && styles.sizeButtonTextActive]}>A3</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.currentSizeText}>Current Width: {paperWidth} cm</Text>
+      </View>
+
+      {/* Action Buttons */}
       <View style={styles.controlsContainer}>
         <TouchableOpacity style={styles.buttonSecondary} onPress={pickImageAsync}>
           <Text style={styles.buttonTextSecondary}>
@@ -94,6 +129,7 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
 
+        {/* This is the missing step from your screenshot! It appears AFTER cropping */}
         {selectedImage && (
           <TouchableOpacity 
             style={[styles.buttonPrimary, isProcessing && styles.buttonDisabled]} 
@@ -109,13 +145,12 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* 3. Display Results */}
+      {/* Results Box */}
       {responseData && (
         <View style={styles.resultContainer}>
           <Text style={styles.resultTitle}>Data Received:</Text>
           <Text style={styles.resultText}>Face Detected: {responseData.face_detected ? 'Yes' : 'No'}</Text>
           <Text style={styles.resultText}>Points Found: {responseData.landmarks?.length || 0}</Text>
-          {/* We only show a snippet of the raw JSON because 468 landmarks is huge */}
           <Text style={styles.codeSnippet}>
              {JSON.stringify(responseData.landmarks?.slice(0, 2), null, 2)}...
           </Text>
@@ -162,24 +197,63 @@ const styles = StyleSheet.create({
     color: '#888888',
     fontSize: 16,
   },
+  sizeSelectorContainer: {
+    width: '100%',
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  sizeLabel: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  sizeButtonsRow: {
+    flexDirection: 'row',
+    gap: 15,
+    marginBottom: 10,
+  },
+  sizeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#444',
+    backgroundColor: '#1e1e1e',
+  },
+  sizeButtonActive: {
+    borderColor: '#4CAF50',
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+  },
+  sizeButtonText: {
+    color: '#aaaaaa',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sizeButtonTextActive: {
+    color: '#4CAF50',
+  },
+  currentSizeText: {
+    color: '#888888',
+    fontSize: 14,
+  },
   controlsContainer: {
     width: '100%',
-    gap: 12, // Space between buttons
+    gap: 12,
   },
   buttonPrimary: {
-    backgroundColor: '#4CAF50', // Green for action
+    backgroundColor: '#4CAF50', 
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
   },
   buttonSecondary: {
-    backgroundColor: '#333333', // Dark grey for secondary
+    backgroundColor: '#333333', 
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#2E7D32', // Darker green when loading
+    backgroundColor: '#2E7D32', 
     opacity: 0.7,
   },
   buttonTextPrimary: {
