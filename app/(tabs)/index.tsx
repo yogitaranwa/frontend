@@ -57,7 +57,7 @@ export default function HomeScreen() {
 
     try {
       // WARNING: Make sure this matches your current Wi-Fi IP address!
-      const SERVER_URL = 'http://172.27.128.1:8000/process-image/'; 
+      const SERVER_URL = 'http://172.22.103.50:8000/process-image/'; 
       
       const response = await fetch(SERVER_URL, {
         method: 'POST',
