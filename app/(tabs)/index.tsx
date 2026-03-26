@@ -1,296 +1,333 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  Image, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  ScrollView 
+import {
+  StyleSheet, Text, View, Image,
+  TouchableOpacity, ActivityIndicator,
+  ScrollView, Dimensions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const SERVER_URL = 'http://10.254.151.50:8000/process-image/';
+const ACCENT     = '#A78BFA';
+const BG         = '#0F0F13';
+const CARD_BG    = '#1A1A24';
+const BORDER     = '#2A2A38';
+
+const CANVAS_SIZES = [
+  { label: 'A5', value: 14.8 },
+  { label: 'A4', value: 21.0 },
+  { label: 'A3', value: 29.7 },
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Measurements {
+  face_width_cm: number;      face_height_cm: number;
+  eye_to_eye_cm: number;      left_eye_width_cm: number;  right_eye_width_cm: number;
+  nose_width_cm: number;      nose_length_cm: number;
+  mouth_width_cm: number;     lip_height_cm: number;
+  forehead_to_brow_cm: number; brow_to_nose_tip_cm: number;
+  nose_tip_to_chin_cm: number; eye_to_mouth_cm: number;
+}
+interface ApiResponse {
+  face_detected:   boolean;
+  canvas_width_cm: number;
+  measurements:    Measurements;
+  annotated_image?: string;   // base64 JPEG from backend OpenCV
+  error?: string;
+}
+
+// ─── Measurement display groups ───────────────────────────────────────────────
+const MEASURE_GROUPS = [
+  { title: 'Face Frame', icon: '🖼️', color: '#60A5FA', items: [
+    { key: 'face_width_cm',  label: 'Face Width'  },
+    { key: 'face_height_cm', label: 'Face Height' },
+  ]},
+  { title: 'Eyes', icon: '👁️', color: '#34D399', items: [
+    { key: 'eye_to_eye_cm',       label: 'Eye-to-Eye (outer)' },
+    { key: 'left_eye_width_cm',   label: 'Left Eye Width'     },
+    { key: 'right_eye_width_cm',  label: 'Right Eye Width'    },
+  ]},
+  { title: 'Nose', icon: '👃', color: '#FBBF24', items: [
+    { key: 'nose_width_cm',  label: 'Nose Width'  },
+    { key: 'nose_length_cm', label: 'Nose Length' },
+  ]},
+  { title: 'Mouth', icon: '👄', color: '#F472B6', items: [
+    { key: 'mouth_width_cm', label: 'Mouth Width' },
+    { key: 'lip_height_cm',  label: 'Lip Height'  },
+  ]},
+  { title: 'Vertical Distances', icon: '📏', color: '#C084FC', items: [
+    { key: 'forehead_to_brow_cm', label: 'Forehead → Brow'  },
+    { key: 'brow_to_nose_tip_cm', label: 'Brow → Nose Tip'  },
+    { key: 'nose_tip_to_chin_cm', label: 'Nose Tip → Chin'  },
+    { key: 'eye_to_mouth_cm',     label: 'Eye → Mouth'      },
+  ]},
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [paperWidth, setPaperWidth] = useState<number>(21.0); 
-  
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [responseData, setResponseData] = useState<any>(null);
+  const [paperWidth,    setPaperWidth]    = useState<number>(21.0);
+  const [isProcessing,  setIsProcessing]  = useState<boolean>(false);
+  const [result,        setResult]        = useState<ApiResponse | null>(null);
+  const [showOverlay,   setShowOverlay]   = useState<boolean>(true);
 
-  // 1. Pick Image (Crop Feature Restored)
-  const pickImageAsync = async () => {
+  // ── Pick photo ──────────────────────────────────────────────────────────────
+  const pickImage = async () => {
     try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true, // Restored the cropping feature!
-        quality: 1,
+      const res = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true, quality: 1,
       });
-
-      if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
-        setResponseData(null); 
+      if (!res.canceled) {
+        setSelectedImage(res.assets[0].uri);
+        setResult(null);
+        setShowOverlay(true);
       }
-    } catch (error) {
-      console.log("Error picking image:", error);
-      alert("Something went wrong opening the gallery.");
-    }
+    } catch { alert('Could not open gallery.'); }
   };
 
-  // 2. The Bridge 
-  const uploadImage = async () => {
+  // ── Upload + analyse ────────────────────────────────────────────────────────
+  const analyse = async () => {
     if (!selectedImage) return;
-
     setIsProcessing(true);
-
-    let formData = new FormData();
-    let localUri = selectedImage;
-    let filename = localUri.split('/').pop() || 'photo.jpg';
-    let match = /\.(\w+)$/.exec(filename);
-    let type = match ? `image/${match[1]}` : `image/jpeg`;
-
-    formData.append('file', {
-      uri: localUri,
-      name: filename,
-      type: type
-    } as any);
-    
+    const formData = new FormData();
+    const filename = selectedImage.split('/').pop() || 'photo.jpg';
+    const ext      = /\.(\w+)$/.exec(filename);
+    const type     = ext ? `image/${ext[1]}` : 'image/jpeg';
+    formData.append('file', { uri: selectedImage, name: filename, type } as any);
     formData.append('paper_width_cm', paperWidth.toString());
-
     try {
-      // WARNING: Make sure this matches your current Wi-Fi IP address!
-      const SERVER_URL = 'http://172.22.103.50:8000/process-image/'; 
-      
-      const response = await fetch(SERVER_URL, {
+      const res = await fetch(SERVER_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
         body: formData,
       });
-
-      const jsonResult = await response.json();
-      setResponseData(jsonResult);
-      
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to connect to the server. Is FastAPI running on the right IP?');
+      setResult(await res.json());
+    } catch {
+      alert('Failed to connect to the server. Is FastAPI running?');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // ── Which image to show ─────────────────────────────────────────────────────
+  const displayUri =
+    showOverlay && result?.annotated_image
+      ? `data:image/jpeg;base64,${result.annotated_image}`
+      : selectedImage ?? undefined;
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <ScrollView contentContainerStyle={styles.scroll}>
+
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Reference Guide</Text>
+        <Text style={styles.appName}>ArtGrid</Text>
+        <Text style={styles.subtitle}>Proportional Reference Tool</Text>
       </View>
 
-      {/* Canvas Area */}
-      <View style={styles.imageContainer}>
-        {selectedImage ? (
-          <Image source={{ uri: selectedImage }} style={styles.image} />
+      {/* Image card */}
+      <View style={styles.imageCard}>
+        {displayUri ? (
+          <>
+            <Image
+              source={{ uri: displayUri }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+            {/* Overlay toggle — only after analysis */}
+            {result?.face_detected && (
+              <TouchableOpacity
+                style={styles.toggleBtn}
+                onPress={() => setShowOverlay(v => !v)}
+              >
+                <Text style={styles.toggleBtnText}>
+                  {showOverlay ? '🙈  Hide Overlay' : '👁️  Show Overlay'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         ) : (
-          <Text style={styles.placeholderText}>Your canvas is empty.</Text>
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderIcon}>🖼️</Text>
+            <Text style={styles.placeholderText}>No reference photo selected</Text>
+            <Text style={styles.placeholderHint}>Tap "Choose Photo" to get started</Text>
+          </View>
         )}
       </View>
 
-      {/* Paper Size Selector */}
-      <View style={styles.sizeSelectorContainer}>
-        <Text style={styles.sizeLabel}>Select Canvas Width:</Text>
-        <View style={styles.sizeButtonsRow}>
-          <TouchableOpacity 
-            style={[styles.sizeButton, paperWidth === 14.8 && styles.sizeButtonActive]} 
-            onPress={() => setPaperWidth(14.8)}
-          >
-            <Text style={[styles.sizeButtonText, paperWidth === 14.8 && styles.sizeButtonTextActive]}>A5</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.sizeButton, paperWidth === 21.0 && styles.sizeButtonActive]} 
-            onPress={() => setPaperWidth(21.0)}
-          >
-            <Text style={[styles.sizeButtonText, paperWidth === 21.0 && styles.sizeButtonTextActive]}>A4</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.sizeButton, paperWidth === 29.7 && styles.sizeButtonActive]} 
-            onPress={() => setPaperWidth(29.7)}
-          >
-            <Text style={[styles.sizeButtonText, paperWidth === 29.7 && styles.sizeButtonTextActive]}>A3</Text>
-          </TouchableOpacity>
+      {/* Canvas size */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionLabel}>📐  Physical Canvas Size</Text>
+        <View style={styles.sizeRow}>
+          {CANVAS_SIZES.map(s => (
+            <TouchableOpacity
+              key={s.label}
+              style={[styles.sizeBtn, paperWidth === s.value && styles.sizeBtnActive]}
+              onPress={() => setPaperWidth(s.value)}
+            >
+              <Text style={[styles.sizeBtnLabel, paperWidth === s.value && styles.sizeBtnLabelActive]}>
+                {s.label}
+              </Text>
+              <Text style={[styles.sizeBtnSub, paperWidth === s.value && styles.sizeBtnLabelActive]}>
+                {s.value} cm
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <Text style={styles.currentSizeText}>Current Width: {paperWidth} cm</Text>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.controlsContainer}>
-        <TouchableOpacity style={styles.buttonSecondary} onPress={pickImageAsync}>
-          <Text style={styles.buttonTextSecondary}>
-            {selectedImage ? 'Change Photo' : 'Choose Photo'}
+      {/* Buttons */}
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.btnSecondary} onPress={pickImage}>
+          <Text style={styles.btnSecondaryText}>
+            {selectedImage ? '📷  Change Photo' : '📷  Choose Photo'}
           </Text>
         </TouchableOpacity>
 
-        {/* This is the missing step from your screenshot! It appears AFTER cropping */}
         {selectedImage && (
-          <TouchableOpacity 
-            style={[styles.buttonPrimary, isProcessing && styles.buttonDisabled]} 
-            onPress={uploadImage}
+          <TouchableOpacity
+            style={[styles.btnPrimary, isProcessing && styles.btnDisabled]}
+            onPress={analyse}
             disabled={isProcessing}
           >
-            {isProcessing ? (
-               <ActivityIndicator color="#fff" />
-            ) : (
-               <Text style={styles.buttonTextPrimary}>Calculate Proportions</Text>
-            )}
+            {isProcessing
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.btnPrimaryText}>📏  Calculate Proportions</Text>
+            }
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Results Box */}
-      {responseData && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>Data Received:</Text>
-          <Text style={styles.resultText}>Face Detected: {responseData.face_detected ? 'Yes' : 'No'}</Text>
-          <Text style={styles.resultText}>Points Found: {responseData.landmarks?.length || 0}</Text>
-          <Text style={styles.codeSnippet}>
-             {JSON.stringify(responseData.landmarks?.slice(0, 2), null, 2)}...
-          </Text>
+      {/* Results */}
+      {result && (
+        <View style={styles.resultsWrapper}>
+          {!result.face_detected ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorIcon}>😕</Text>
+              <Text style={styles.errorTitle}>No Face Detected</Text>
+              <Text style={styles.errorText}>
+                Try a clearer, well-lit photo with a visible face.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.resultBanner}>
+                <Text style={styles.resultBannerText}>
+                  ✅  Measurements for {result.canvas_width_cm} cm wide canvas
+                </Text>
+              </View>
+
+              {MEASURE_GROUPS.map(group => (
+                <View key={group.title} style={[styles.groupCard, { borderLeftColor: group.color }]}>
+                  <Text style={[styles.groupTitle, { color: group.color }]}>
+                    {group.icon}  {group.title}
+                  </Text>
+                  {group.items.map(item => {
+                    const val = (result.measurements as any)[item.key];
+                    return (
+                      <View key={item.key} style={styles.measureRow}>
+                        <Text style={styles.measureLabel}>{item.label}</Text>
+                        <View style={styles.measureValueBox}>
+                          <Text style={[styles.measureValue, { color: group.color }]}>{val}</Text>
+                          <Text style={styles.measureUnit}> cm</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </>
+          )}
         </View>
       )}
+
     </ScrollView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    backgroundColor: '#121212',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+  scroll: {
+    flexGrow: 1, backgroundColor: BG,
+    paddingTop: 60, paddingBottom: 48, paddingHorizontal: 20, gap: 14,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
+
+  header:   { alignItems: 'center', marginBottom: 2 },
+  appName:  { fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  subtitle: { fontSize: 12, color: '#6B6B8A', marginTop: 3 },
+
+  imageCard: {
+    width: '100%', height: 340,
+    backgroundColor: CARD_BG, borderRadius: 20, overflow: 'hidden',
+    borderWidth: 1, borderColor: BORDER,
   },
-  title: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 1,
+  image: { width: '100%', height: '100%' },
+
+  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  placeholderIcon: { fontSize: 40 },
+  placeholderText: { color: '#888', fontSize: 14, fontWeight: '600' },
+  placeholderHint: { color: '#555', fontSize: 12 },
+
+  toggleBtn: {
+    position: 'absolute', bottom: 10, right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  imageContainer: {
-    width: '100%',
-    height: 350,
-    backgroundColor: '#1e1e1e',
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: 20,
+  toggleBtnText: { color: '#ddd', fontSize: 12, fontWeight: '600' },
+
+  sectionCard: {
+    backgroundColor: CARD_BG, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: BORDER,
   },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+  sectionLabel: { color: '#aaa', fontSize: 13, fontWeight: '600', marginBottom: 12 },
+
+  sizeRow: { flexDirection: 'row', gap: 10 },
+  sizeBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1, borderColor: BORDER, backgroundColor: '#13131C',
   },
-  placeholderText: {
-    color: '#888888',
-    fontSize: 16,
+  sizeBtnActive:      { borderColor: ACCENT, backgroundColor: 'rgba(167,139,250,0.12)' },
+  sizeBtnLabel:       { color: '#aaa', fontSize: 16, fontWeight: '700' },
+  sizeBtnLabelActive: { color: ACCENT },
+  sizeBtnSub:         { color: '#555', fontSize: 11, marginTop: 2 },
+
+  actions: { gap: 10 },
+  btnPrimary: {
+    backgroundColor: ACCENT, paddingVertical: 16, borderRadius: 14, alignItems: 'center',
   },
-  sizeSelectorContainer: {
-    width: '100%',
-    marginBottom: 30,
-    alignItems: 'center',
+  btnSecondary: {
+    backgroundColor: CARD_BG, paddingVertical: 16, borderRadius: 14,
+    alignItems: 'center', borderWidth: 1, borderColor: BORDER,
   },
-  sizeLabel: {
-    color: '#ffffff',
-    fontSize: 16,
-    marginBottom: 10,
+  btnDisabled:      { opacity: 0.6 },
+  btnPrimaryText:   { color: '#fff', fontSize: 16, fontWeight: '700' },
+  btnSecondaryText: { color: '#ccc', fontSize: 16, fontWeight: '600' },
+
+  resultsWrapper: { gap: 12 },
+  resultBanner: {
+    backgroundColor: 'rgba(167,139,250,0.12)', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)', alignItems: 'center',
   },
-  sizeButtonsRow: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 10,
+  resultBannerText: { color: ACCENT, fontWeight: '700', fontSize: 14 },
+
+  groupCard: {
+    backgroundColor: CARD_BG, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: BORDER, borderLeftWidth: 3, gap: 10,
   },
-  sizeButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#444',
-    backgroundColor: '#1e1e1e',
+  groupTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+
+  measureRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  measureLabel:    { color: '#888', fontSize: 13, flex: 1 },
+  measureValueBox: { flexDirection: 'row', alignItems: 'baseline' },
+  measureValue:    { fontSize: 20, fontWeight: '800' },
+  measureUnit:     { color: '#666', fontSize: 12, fontWeight: '600' },
+
+  errorBox: {
+    backgroundColor: CARD_BG, borderRadius: 16, padding: 28,
+    alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#3A1A1A',
   },
-  sizeButtonActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-  },
-  sizeButtonText: {
-    color: '#aaaaaa',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sizeButtonTextActive: {
-    color: '#4CAF50',
-  },
-  currentSizeText: {
-    color: '#888888',
-    fontSize: 14,
-  },
-  controlsContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  buttonPrimary: {
-    backgroundColor: '#4CAF50', 
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-  buttonSecondary: {
-    backgroundColor: '#333333', 
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#2E7D32', 
-    opacity: 0.7,
-  },
-  buttonTextPrimary: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonTextSecondary: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resultContainer: {
-    marginTop: 30,
-    width: '100%',
-    backgroundColor: '#1e1e1e',
-    padding: 20,
-    borderRadius: 12,
-  },
-  resultTitle: {
-    color: '#4CAF50',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  resultText: {
-    color: '#ffffff',
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  codeSnippet: {
-    color: '#A1CEDC',
-    fontFamily: 'monospace',
-    fontSize: 12,
-    marginTop: 10,
-    backgroundColor: '#000000',
-    padding: 10,
-    borderRadius: 6,
-  }
+  errorIcon:  { fontSize: 36 },
+  errorTitle: { color: '#FF6B6B', fontSize: 18, fontWeight: '700' },
+  errorText:  { color: '#777', fontSize: 13, textAlign: 'center' },
 });
