@@ -9,9 +9,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
+import { SERVER_URL, RECALC_URL } from '@/constants/server';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SERVER_URL  = 'http://10.254.151.50:8000/process-image/';
-const RECALC_URL  = 'http://10.254.151.50:8000/recalculate/';
 const ACCENT      = '#A78BFA';
 const BG          = '#0F0F13';
 const CARD_BG     = '#1A1A24';
@@ -130,9 +130,12 @@ export default function HomeScreen() {
       const res = await fetch(SERVER_URL, {
         method: 'POST', headers: { 'Content-Type': 'multipart/form-data' }, body: formData,
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       setResult(await res.json());
       setViewMode('photo');
-    } catch { Alert.alert('Connection Error', 'Failed to connect to the server. Is FastAPI running?'); }
+    } catch (err: any) {
+      Alert.alert('Connection Error', `Failed to process image.\n${err.message || 'Is FastAPI running?'}`);
+    }
     finally { setIsProcessing(false); }
   };
 
@@ -151,9 +154,12 @@ export default function HomeScreen() {
           mode:             'face',
         }),
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const json = await res.json();
       setResult(prev => prev ? { ...prev, ...json } : prev);
-    } catch { Alert.alert('Error', 'Could not recalculate.'); }
+    } catch (err: any) {
+      Alert.alert('Error', `Could not recalculate.\n${err.message}`);
+    }
     finally { setIsRecalculating(false); }
   }, [result, paperHeight]);
 

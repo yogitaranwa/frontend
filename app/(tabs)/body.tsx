@@ -9,9 +9,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 
+import { BODY_URL as SERVER_URL, RECALC_URL } from '@/constants/server';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SERVER_URL  = 'http://10.254.151.50:8000/process-body/';
-const RECALC_URL  = 'http://10.254.151.50:8000/recalculate/';
 const ACCENT      = '#F472B6';   // pink — different from face tab
 const BG          = '#0F0F13';
 const CARD_BG     = '#1A1A24';
@@ -19,21 +19,23 @@ const BORDER      = '#2A2A38';
 const SCREEN_W    = Dimensions.get('window').width;
 
 const PRESET_SIZES = [
-  { label: 'A5', value: 14.8 },
-  { label: 'A4', value: 21.0 },
-  { label: 'A3', value: 29.7 },
+  { label: 'A5', width: 14.8, height: 21.0 },
+  { label: 'A4', width: 21.0, height: 29.7 },
+  { label: 'A3', width: 29.7, height: 42.0 },
 ];
 
 interface Measurements { [key: string]: number }
 interface ApiResponse {
   pose_detected:    boolean;
   canvas_width_cm:  number;
+  canvas_height_cm?: number;
   body_height_cm?:  number;
   measurements:     Measurements;
   ratios:           { [key: string]: number };
   measurements_px?: Record<string, number>;
   image_size?:      { width_px: number; height_px: number };
   annotated_image?: string;
+  canvas_image?:    string;
 }
 
 // ─── Measurement groups ───────────────────────────────────────────────────────
@@ -82,13 +84,14 @@ function FractionBar({ value, color }: { value: number; color: string }) {
 export default function BodyScreen() {
   const [selectedImage,   setSelectedImage]   = useState<string | null>(null);
   const [paperWidth,      setPaperWidth]      = useState<number>(21.0);
-  const [customWidth,     setCustomWidth]      = useState<string>('');
-  const [useCustom,       setUseCustom]        = useState<boolean>(false);
+  const [paperHeight,     setPaperHeight]     = useState<number>(29.7);
+  const [customWidth,     setCustomWidth]     = useState<string>('');
+  const [useCustom,       setUseCustom]       = useState<boolean>(false);
   const [isProcessing,    setIsProcessing]    = useState<boolean>(false);
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const [isSaving,        setIsSaving]        = useState<boolean>(false);
   const [result,          setResult]          = useState<ApiResponse | null>(null);
-  const [showOverlay,     setShowOverlay]     = useState<boolean>(true);
+  const [viewMode,        setViewMode]        = useState<'photo' | 'canvas'>('photo');
 
   const activeWidth = useCustom ? (parseFloat(customWidth) || paperWidth) : paperWidth;
 
@@ -122,14 +125,18 @@ export default function BodyScreen() {
     const ext       = /\.(\w+)$/.exec(filename);
     const type      = ext ? `image/${ext[1]}` : 'image/jpeg';
     formData.append('file', { uri: selectedImage, name: filename, type } as any);
-    formData.append('paper_width_cm', activeWidth.toString());
+    formData.append('paper_width_cm',  activeWidth.toString());
+    formData.append('paper_height_cm', paperHeight.toString());
     try {
       const res = await fetch(SERVER_URL, {
         method: 'POST', headers: { 'Content-Type': 'multipart/form-data' }, body: formData,
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       setResult(await res.json());
-      setShowOverlay(true);
-    } catch { Alert.alert('Connection Error', 'Failed to connect to the server. Is FastAPI running?'); }
+      setViewMode('photo');
+    } catch (err: any) {
+      Alert.alert('Connection Error', `Failed to process image.\n${err.message || 'Is FastAPI running?'}`);
+    }
     finally { setIsProcessing(false); }
   };
 
@@ -141,20 +148,24 @@ export default function BodyScreen() {
       const res = await fetch(RECALC_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          measurements_px: result.measurements_px,
-          image_width_px:  result.image_size.width_px,
-          paper_width_cm:  newWidth,
-          mode:            'body',
+          measurements_px:  result.measurements_px,
+          image_width_px:   result.image_size.width_px,
+          paper_width_cm:   newWidth,
+          paper_height_cm:  paperHeight,
+          mode:             'body',
         }),
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const json = await res.json();
       setResult(prev => prev ? { ...prev, ...json } : prev);
-    } catch { Alert.alert('Error', 'Could not recalculate.'); }
+    } catch (err: any) {
+      Alert.alert('Error', `Could not recalculate.\n${err.message}`);
+    }
     finally { setIsRecalculating(false); }
-  }, [result]);
+  }, [result, paperHeight]);
 
-  const handleSizeChange = (newWidth: number) => {
-    setPaperWidth(newWidth); setUseCustom(false);
+  const handleSizeChange = (newWidth: number, newHeight: number) => {
+    setPaperWidth(newWidth); setPaperHeight(newHeight); setUseCustom(false);
     if (result?.pose_detected) recalculate(newWidth);
   };
 
@@ -179,9 +190,13 @@ export default function BodyScreen() {
     finally { setIsSaving(false); }
   };
 
-  const displayUri = showOverlay && result?.annotated_image
-    ? `data:image/jpeg;base64,${result.annotated_image}`
-    : selectedImage ?? undefined;
+  const displayUri = (() => {
+    if (viewMode === 'canvas' && result?.canvas_image)
+      return `data:image/jpeg;base64,${result.canvas_image}`;
+    if (result?.annotated_image)
+      return `data:image/jpeg;base64,${result.annotated_image}`;
+    return selectedImage ?? undefined;
+  })();
 
   const ratios = result?.ratios ?? {};
 
@@ -209,9 +224,18 @@ export default function BodyScreen() {
             <>
               <Image source={{ uri: displayUri }} style={styles.image} resizeMode="contain" />
               {result?.pose_detected && (
-                <TouchableOpacity style={styles.toggleBtn} onPress={() => setShowOverlay(v => !v)}>
-                  <Text style={styles.toggleBtnText}>{showOverlay ? '🙈 Hide' : '👁️ Show'}</Text>
-                </TouchableOpacity>
+                <View style={styles.viewModeRow}>
+                  <TouchableOpacity
+                    style={[styles.viewModeBtn, viewMode === 'photo' && styles.viewModeBtnActive]}
+                    onPress={() => setViewMode('photo')}>
+                    <Text style={[styles.viewModeBtnText, viewMode === 'photo' && { color: ACCENT }]}>📸 Photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.viewModeBtn, viewMode === 'canvas' && styles.viewModeBtnActive]}
+                    onPress={() => setViewMode('canvas')}>
+                    <Text style={[styles.viewModeBtnText, viewMode === 'canvas' && { color: ACCENT }]}>📐 Canvas</Text>
+                  </TouchableOpacity>
+                </View>
               )}
               {result?.annotated_image && (
                 <TouchableOpacity style={[styles.saveBtn, isSaving && { opacity: 0.6 }]} onPress={saveToGallery} disabled={isSaving}>
@@ -243,11 +267,11 @@ export default function BodyScreen() {
             {PRESET_SIZES.map(s => (
               <TouchableOpacity
                 key={s.label}
-                style={[styles.sizeBtn, !useCustom && paperWidth === s.value && styles.sizeBtnActive]}
-                onPress={() => handleSizeChange(s.value)}
+                style={[styles.sizeBtn, !useCustom && paperWidth === s.width && styles.sizeBtnActive]}
+                onPress={() => handleSizeChange(s.width, s.height)}
               >
-                <Text style={[styles.sizeBtnLabel, !useCustom && paperWidth === s.value && styles.sizeBtnLabelActive]}>{s.label}</Text>
-                <Text style={[styles.sizeBtnSub,   !useCustom && paperWidth === s.value && styles.sizeBtnLabelActive]}>{s.value} cm</Text>
+                <Text style={[styles.sizeBtnLabel, !useCustom && paperWidth === s.width && styles.sizeBtnLabelActive]}>{s.label}</Text>
+                <Text style={[styles.sizeBtnSub,   !useCustom && paperWidth === s.width && styles.sizeBtnLabelActive]}>{s.width} cm</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={[styles.sizeBtn, useCustom && styles.sizeBtnActive]} onPress={() => setUseCustom(true)}>
@@ -411,8 +435,10 @@ const styles = StyleSheet.create({
   placeholderText: { color: '#888', fontSize: 14, fontWeight: '600' },
   placeholderHint: { color: '#555', fontSize: 12 },
 
-  toggleBtn:     { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  toggleBtnText: { color: '#ddd', fontSize: 12, fontWeight: '600' },
+  viewModeRow:         { position: 'absolute', top: 10, left: 10, right: 10, flexDirection: 'row', gap: 6, justifyContent: 'center' },
+  viewModeBtn:         { flex: 1, paddingVertical: 6, borderRadius: 20, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  viewModeBtnActive:   { borderColor: ACCENT, backgroundColor: 'rgba(244,114,182,0.15)' },
+  viewModeBtnText:     { color: '#aaa', fontSize: 12, fontWeight: '700' },
 
   saveBtn:     { position: 'absolute', bottom: 10, left: 10, right: 10, backgroundColor: 'rgba(124,58,237,0.85)', paddingVertical: 10, borderRadius: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
