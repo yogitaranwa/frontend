@@ -1,33 +1,50 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
+import { Platform } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const ACCENT_FACE = '#A78BFA';  // violet — face tab
+const ACCENT_BODY = '#F472B6';  // pink   — body tab
+const INACTIVE    = '#4A4A6A';
+const TAB_BG      = '#0F0F13';
+const TAB_BORDER  = '#1A1A24';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          backgroundColor: TAB_BG,
+          borderTopColor: TAB_BORDER,
+          borderTopWidth: 1,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 88 : 64,
+        },
+        tabBarInactiveTintColor: INACTIVE,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Face',
+          tabBarActiveTintColor: ACCENT_FACE,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="face.smiling" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="body"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Body',
+          tabBarActiveTintColor: ACCENT_BODY,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="figure.stand" color={color} />
+          ),
         }}
       />
     </Tabs>
