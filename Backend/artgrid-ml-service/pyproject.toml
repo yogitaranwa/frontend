@@ -1,0 +1,33 @@
+[project]
+name = "artgrid-ml-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi==0.115.5",
+    "uvicorn[standard]==0.32.0",
+    "python-multipart==0.0.18",   # multipart/form-data uploads
+    "pydantic==2.9.2",
+    "pydantic-settings==2.6.1",
+    "PyJWT==2.10.0",              # JWT validation (shared secret, HS256)
+    "cryptography==43.0.3",       # JWT dependency
+    "dlib==19.24.6",              # face detection + 68-pt landmarks
+    "onnxruntime==1.20.1",        # YOLOv8n + u2netp inference on CPU
+    "opencv-python-headless==4.10.0.84",  # image decode/resize (no GUI)
+    "numpy==2.1.3",
+    "Pillow==11.0.0",             # PNG mask encoding
+    "structlog==24.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.27.2",
+    "pytest-mock==3.14.0",
+]
+# GPU host: replace onnxruntime with onnxruntime-gpu on the CUDA VM.
+# pip install "artgrid-ml-service[gpu]" (or pip install onnxruntime-gpu manually after install)
+gpu = [
+    "onnxruntime-gpu==1.20.1",
+]

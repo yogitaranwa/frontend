@@ -1,0 +1,28 @@
+# ArtGrid Backend — .gitignore
+.env
+*.env.local
+*.env.production
+
+# Go build artefacts
+artgrid-auth-service/artgrid-auth
+artgrid-ai-proxy/artgrid-proxy
+
+# Python
+artgrid-ml-service/__pycache__/
+artgrid-ml-service/**/__pycache__/
+artgrid-ml-service/*.pyc
+artgrid-ml-service/.venv/
+
+# Models (large binary files — download separately)
+models/
+
+# Docker volumes
+pg_data/
+
+# Local Cloud SQL Auth Proxy binary (download from Google; do not commit)
+cloud-sql-proxy.exe
+
+# IDE
+.idea/
+.vscode/
+*.swp

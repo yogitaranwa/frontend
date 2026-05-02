@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Internet access for all three backend services -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- READ_EXTERNAL_STORAGE for image picker (Android < 13) -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- READ_MEDIA_IMAGES replaces READ_EXTERNAL_STORAGE on Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- CAMERA — F-27-MVP trace/camera-underlay mode (CameraX) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:name=".ArtGridApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="ArtGrid"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ArtGrid"
+        android:usesCleartextTraffic="true">
+        <!--
+            android:usesCleartextTraffic="true" is required for local demo mode
+            where the backend services run on http:// (BuildConfig host: default LAN IP or overrides via demo.properties / local.properties).
+            In deployed mode the cloud provider provides HTTPS — this flag has no
+            security impact when all transports are already TLS.
+        -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,35 @@
+# ArtGrid — Cloud Build: build and push artgrid-ml-service to Artifact Registry.
+#
+# Prerequisites (once per project):
+#   gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com
+#   gcloud artifacts repositories create artgrid --repository-format=docker --location=REGION
+#
+# Submit from repo root containing this file (backend/):
+#   cd backend
+#   gcloud builds submit --config=cloudbuild.yaml .
+#
+# Override region:
+#   gcloud builds submit --config=cloudbuild.yaml . --substitutions=_REGION=europe-west4
+
+substitutions:
+  _REGION: us-central1
+  _REPO: artgrid
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/ml-service:$BUILD_ID
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/ml-service:latest
+      - -f
+      - artgrid-ml-service/Dockerfile
+      - artgrid-ml-service
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/ml-service:$BUILD_ID
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/ml-service:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

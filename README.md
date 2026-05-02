@@ -1,50 +1,262 @@
-# Welcome to your Expo app 👋
+# ArtGrid
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**ArtGrid** is a full-stack **Android** app for artists and learners who work from reference photos. It combines **on-device C++ image processing** (JNI) with **cloud ML** (face landmarks, object detection, U²-Net segmentation) and an **SSE-streamed** “AI Artist” chat backed by Gemini—so you can analyze references in the cloud, then refine geometry and colour on the device with calibration grids, paper mapping, trace mode, palette tools, and progression tracking.
 
-## Get started
+<p align="center">
+  <a href="https://github.com/yogitaranwa/ArtGrid">⭐ Star this repo</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/yogitaranwa/ArtGrid/issues">Report an issue</a>
+</p>
 
-1. Install dependencies
+| Layer | Stack |
+|-------|--------|
+| **Mobile** | Kotlin 2.0, Jetpack Compose (Material 3), Hilt, Room, OkHttp/Retrofit, NDK |
+| **Backend** | **Auth** (Go), **ML** (Python FastAPI), **AI proxy** (Go)—independently deployable |
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## Overview
 
-   ```bash
-   npx expo start
-   ```
+- **Reference-first workflow:** import an image, probe ML services when available, then use playgrounds and native filters without round-trips for every edit.
+- **Hybrid compute:** heavy geometry/colour math runs **on-device**; face/object/segment inference runs on the **ML service**; chat streams through the **AI proxy** (not direct Gemini from the phone).
+- **Production-ready paths:** OAuth/JWT auth, optional Cloud SQL, GPU ML on RunPod or similar, HTTPS endpoints wired via `demo.properties` / `BuildConfig` (see [technical documentation](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)).
 
-In the output, you'll find options to open the app in a
+**Canonical repository:** [github.com/yogitaranwa/ArtGrid](https://github.com/yogitaranwa/ArtGrid)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Key features
 
-## Get a fresh project
+### Core experience
 
-When you're ready, run:
+- **Import & hub** — reference picker, ML health from Home, navigation across tools.
+- **Server ML** — legacy single-face landmarks, **unified** human + anime-style face fusion, **YOLO** object locator, **U²-Net** subject/background segmentation.
+- **Image playground** — native pipelines (edges, perspective, tonal tools, etc.) plus **shared canvas calibration** (cm grid) on key screens.
+- **Colour & lighting** — sampling, palettes, **Kubelka–Munk**-style mix insights, **shadow geometry** overlay.
+- **Practical studio tools** — crop, **paper / canvas size mapping**, **trace mode** (camera underlay), **reference history**, **progression comparator** (Room).
 
-```bash
-npm run reset-project
+### Technical highlights
+
+- **JNI native core** — Oklab-centred pipelines, perspective, Chamfer sampling, palette quantisation (`libartgrid-native`).
+- **Dual auth models** — **JWT** for auth + ML APIs; **HMAC device token** for the SSE chat proxy.
+- **Resilient client** — rate limits and payload caps on ML; **SSE** parsing without buffering the full reply; **NavResultHolder** for large ML payloads between screens.
+- **Monorepo** — `App/` (Android) + `Backend/` (Compose-friendly local stack; production split across Cloud Run / RunPod as documented).
+
+---
+
+## Screenshots
+
+Phone captures and UI walkthroughs live in **`App/images/`** (paths below are relative to the **repository root** so they render on GitHub).
+
+<p align="center">
+  <img src="App/images/Home.jpeg" alt="Home hub" width="200" />
+  <img src="App/images/Face.jpeg" alt="Face analysis" width="200" />
+  <img src="App/images/Color1.jpeg" alt="Colour palette" width="200" />
+  <img src="App/images/Color2.jpeg" alt="Colour tools" width="200" />
+</p>
+
+<p align="center">
+  <img src="App/images/Edges.jpeg" alt="Edge / structure view" width="200" />
+  <img src="App/images/KM.jpeg" alt="Kubelka–Munk / mix" width="200" />
+  <img src="App/images/ShadowGeometry.jpeg" alt="Shadow geometry overlay" width="200" />
+  <img src="App/images/On-Device.jpeg" alt="On-device processing" width="200" />
+</p>
+
+---
+
+## Architecture
+
+### Runtime flow
+
+```mermaid
+flowchart LR
+  A[Android app] -->|Google Sign-In + JWT| B[Auth service]
+  A -->|Bearer JWT + image| C[ML service]
+  A -->|X-Device-Token + SSE| D[AI proxy]
+  A --> E[(Room SQLite)]
+  D --> F[Gemini]
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Auth** — Google ID token exchange, JWT + refresh; encrypted PII in PostgreSQL when not in demo mode.
+- **ML** — JWT on infer routes, multipart limits, per-device rate limits; GPU service optional in production.
+- **AI proxy** — `POST /api/v1/chat` with **SSE**; hourly **HMAC** device token.
 
-## Learn more
+### Design diagrams (repo assets)
 
-To learn more about developing your project with Expo, look at the following resources:
+Static figures for reports and deep dives—also under **`App/images/`**:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Asset | Typical use |
+|-------|-------------|
+| [`App/images/architecture.png`](App/images/architecture.png) | System / deployment view |
+| [`App/images/component.png`](App/images/component.png) | Component boundaries |
+| [`App/images/flowchart.png`](App/images/flowchart.png) | Process flow |
+| [`App/images/sequence.png`](App/images/sequence.png) | Sequence between layers |
+| [`App/images/dfd_level0.png`](App/images/dfd_level0.png) / [`dfd_level1.png`](App/images/dfd_level1.png) | Data-flow context |
+| [`App/images/state_machine.png`](App/images/state_machine.png) | State transitions |
+| [`App/images/usecase.png`](App/images/usecase.png) | Use-case map |
 
-## Join the community
+**Model evaluation plots** (e.g. [`confusion_matrix.png`](App/images/confusion_matrix.png), PR/F1 curves) live in the same folder for coursework or benchmarking references.
 
-Join our community of developers creating universal apps.
+Full route tables, env vars, and Cloud Run / RunPod checklists: **[Technical documentation](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)**.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## Get the app (production)
+
+Backends can stay deployed—**end users only need the APK** from your GitHub release.
+
+1. Open the repo on GitHub → **Releases**.
+2. Download **`artgrid.apk`** from the latest release assets.
+3. On the phone, allow install from the browser/files app if asked, open the APK, and complete installation.
+
+> **Maintainers:** for each release, attach **`artgrid.apk`** under *Attach binaries* so the *Releases* page stays the single download location.
+
+*(Optional)* Add a **demo video** (e.g. `docs/demo.mp4`) and link it here—similar to demo-driven READMEs like [IntelliRAG / RAG_PROJECT](https://github.com/nobitanobi22/RAG_PROJECT).
+
+---
+
+## Project structure
+
+```
+.
+├── App/
+│   ├── app/                 # Android module (Compose, JNI, Room)
+│   ├── gradle/              # Version catalog (libs.versions.toml)
+│   ├── images/              # README screenshots + architecture / ML figures
+│   ├── docs/
+│   │   └── TECHNICAL_DOCUMENTATION_ARTGRID.md
+│   ├── demo.properties      # Local URL overrides (git-ignored template)
+│   ├── settings.gradle.kts
+│   └── gradlew / gradlew.bat
+└── Backend/
+    ├── artgrid-auth-service/
+    ├── artgrid-ml-service/
+    ├── artgrid-ai-proxy/
+    └── docker-compose.yml
+```
+
+Names **`ArtGrid/`** and **`backend/`** in the long-form doc map to **`App/`** and **`Backend/`** in this repository.
+
+---
+
+## Getting started (clone & build)
+
+### Prerequisites
+
+| Goal | Requirements |
+|------|----------------|
+| **Clone & Android** | Git, **JDK 17**, Android Studio or Android SDK + command-line tools |
+| **Backend locally** | **Docker** + **Docker Compose**; optional **NVIDIA** stack for GPU ML profile |
+| **Production parity** | OAuth client IDs, secrets, and HTTPS base URLs per [App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md) |
+
+### 1. Clone
+
+```bash
+git clone https://github.com/yogitaranwa/ArtGrid.git
+cd ArtGrid
+```
+
+### 2. Android (debug)
+
+```bash
+cd App
+./gradlew :app:assembleDebug
+```
+
+Windows (PowerShell or CMD from `App/`):
+
+```bat
+gradlew.bat :app:assembleDebug
+```
+
+Open the **`App/`** directory in Android Studio if you prefer the IDE.
+
+### 3. Android (release APK for GitHub Releases)
+
+```bash
+cd App
+./gradlew :app:assembleRelease
+```
+
+Signed outputs land under `App/app/build/outputs/apk/release/`. Rename/upload the artefact as **`artgrid.apk`** on Releases when distributing.
+
+### 4. Backend (Docker)
+
+```bash
+cd Backend
+# Configure .env / service .env.example files (see technical doc)
+# Fetch ML models when scripts are present: download_models.sh / download_models.ps1
+docker compose up --build
+```
+
+Typical local ports: **8080** auth, **8001** ML, **8082** AI proxy. For Postgres-backed auth, enable the compose **profile** described in your backend docs (e.g. `--profile postgres`).
+
+### 5. Point the app at your machine
+
+- **`demo.properties`** or **`local.properties`** — set `artgrid.dev.host` to your dev PC’s LAN IP.
+- **Android Emulator:** `artgrid.dev.host=10.0.2.2` in `local.properties` reaches the host loopback.
+
+Secrets and cloud URLs are **not** committed; keep **`JWT_SECRET`**, **`PROXY_SHARED_SECRET`**, and `BuildConfig` base URLs aligned across services.
+
+---
+
+## Configuration snapshot
+
+| Area | Notes |
+|------|--------|
+| **Android** | `DEMO_MODE`, `AUTH_BASE_URL`, `ML_BASE_URL`, `PROXY_BASE_URL`, `PROXY_SHARED_SECRET` via Gradle / `demo.properties` → `BuildConfig` |
+| **Auth + ML** | Shared **`JWT_SECRET`** where applicable; **HTTPS** in production |
+| **AI proxy** | **`PROXY_SHARED_SECRET`** matches the app; requests carry **`X-Device-Token`** |
+
+---
+
+## Troubleshooting
+
+| Symptom | Things to check |
+|--------|------------------|
+| **Cannot reach backend from phone** | Same Wi‑Fi? Firewall? Correct `artgrid.dev.host`? For emulator use `10.0.2.2`. |
+| **ML actions disabled on Home** | ML `/health` failing—compose up, **`JWT_SECRET`** alignment, correct **`ML_BASE_URL`**. |
+| **Chat errors /Empty stream** | Proxy URL, **`PROXY_SHARED_SECRET`**, device token generation; proxy logs. |
+| **401 on ML after login** | Expired JWT—refresh flow; clock skew; auth service URL. |
+| **Gradle / NDK issues** | Android SDK + NDK installed; match **compileSdk** / AGP versions from `App/gradle/libs.versions.toml`. |
+
+---
+
+## Security (summary)
+
+- **PII** encrypted at rest (AES-GCM) when PostgreSQL auth is fully enabled.
+- **Transport:** HTTPS in production; no stack traces leaked to clients from ML error mapping.
+- **Secrets** only in `.env`, `demo.properties`, or CI—never hard-coded for real deployments.
+
+---
+
+## Documentation & version
+
+- **[App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)** — routes, Room schema, native modules, ML contracts, GCP / RunPod operations.
+- **App version:** **0.1.0** (`versionName` / `versionCode` in `App/app/build.gradle.kts`; verify on your branch).
+- **Doc snapshot:** April 2026 (per technical doc).
+
+---
+
+## Contributing
+
+Issues, ideas, and pull requests are welcome. Please open a [GitHub Issue](https://github.com/yogitaranwa/ArtGrid/issues) for bugs or feature requests. For larger changes, a short description of intent before heavy coding helps keep review focused.
+
+---
+
+## Author
+
+**[Yogita Kumari](https://github.com/yogitaranwa)** — maintainer of [ArtGrid](https://github.com/yogitaranwa/ArtGrid).
+
+---
+
+## License
+
+This project is **open source** and released under the [**MIT License**](LICENSE). You are free to use, modify, and distribute it with attribution; see [`LICENSE`](LICENSE) for the full legal text.
+
+---
+
+<p align="center">
+  <i>Made with care—built for anyone who learns and paints from reference.</i><br />
+  <sub><a href="https://github.com/yogitaranwa">Yogita Kumari</a> · <a href="https://github.com/yogitaranwa/ArtGrid">github.com/yogitaranwa/ArtGrid</a></sub>
+</p>

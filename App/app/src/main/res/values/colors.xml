@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ArtGrid brand background: near-black #0D0D12 -->
+    <color name="ic_launcher_background">#0D0D12</color>
+</resources>

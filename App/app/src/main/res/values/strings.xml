@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Web OAuth client ID (same project as server GOOGLE_CLIENT_ID). Required for requestIdToken(). -->
+    <string name="default_web_client_id">1039557809428-883c4rbek41h25volpc2lje747cplrnt.apps.googleusercontent.com</string>
+</resources>

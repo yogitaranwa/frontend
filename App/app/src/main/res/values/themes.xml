@@ -1,0 +1,4 @@
+<resources>
+    <!-- Base application theme — Material3 dynamic color. -->
+    <style name="Theme.ArtGrid" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>

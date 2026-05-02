@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background: solid near-black matching the logo design system -->
+    <background android:drawable="@color/ic_launcher_background" />
+    <!-- Foreground: the provided logo.png -->
+    <foreground android:drawable="@drawable/logo" />
+    <!-- Monochrome layer for themed/tinted icons (Android 13+) -->
+    <monochrome android:drawable="@drawable/logo" />
+</adaptive-icon>

@@ -1,0 +1,151 @@
+# ── ArtGrid Backend Services ──────────────────────────────────────────────────
+# Demo (CPU, no DB):   docker compose up --build
+# Full deploy:         DEMO_MODE=false docker compose --profile postgres up --build
+# GPU host (ML only):  docker compose --profile gpu up --build
+#
+# Prerequisites:
+#   1. Copy .env.example → .env and fill in values (JWT_SECRET is required)
+#   2. Run ./download_models.sh (or download_models.ps1 on Windows) to fetch model files
+#   3. For ONNX export: pip install ultralytics && follow notes in download_models.sh
+
+services:
+
+  # ── Service 1: artgrid-auth-service (Go, port 8080) ─────────────────────────
+  auth:
+    build:
+      context: ./artgrid-auth-service
+      dockerfile: Dockerfile
+    container_name: artgrid-auth
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - artgrid-net
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false   # only required when DEMO_MODE=false
+
+  # ── Service 2: artgrid-ml-service (Python/FastAPI, port 8001) ───────────────
+  # CPU mode (default): runs on any host, uses onnxruntime CPU EP.
+  ml:
+    build:
+      context: ./artgrid-ml-service
+      dockerfile: Dockerfile
+    container_name: artgrid-ml
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      PORT: "8001"
+    volumes:
+      - ./models:/app/models:ro   # model files (read-only, populated by download_models.sh)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 90s   # GPU model loading can take 60–90 s on cold start
+    networks:
+      - artgrid-net
+
+  # ── Service 2 (GPU variant): artgrid-ml-service with NVIDIA GPU passthrough ──
+  # Usage: docker compose --profile gpu up --build
+  # Requirements: NVIDIA GPU driver + NVIDIA Container Toolkit on the host.
+  #   sudo apt-get install -y nvidia-container-toolkit
+  #   sudo nvidia-ctk runtime configure --runtime=docker
+  #   sudo systemctl restart docker
+  ml-gpu:
+    build:
+      context: ./artgrid-ml-service
+      dockerfile: Dockerfile
+    container_name: artgrid-ml-gpu
+    profiles:
+      - gpu
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      PORT: "8001"
+      BUILD: "gpu"
+    volumes:
+      - ./models:/app/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - artgrid-net
+
+  # ── Service 3: artgrid-ai-proxy (Go, port 8082) ──────────────────────────────
+  proxy:
+    build:
+      context: ./artgrid-ai-proxy
+      dockerfile: Dockerfile
+    container_name: artgrid-proxy
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    environment:
+      PORT: "8082"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - artgrid-net
+
+  # ── PostgreSQL (deployed mode only — skipped in demo via profile) ────────────
+  db:
+    image: postgres:16-alpine
+    container_name: artgrid-db
+    restart: unless-stopped
+    profiles:
+      - postgres     # only started with: docker compose --profile postgres up
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-artgrid}
+      POSTGRES_USER:     ${POSTGRES_USER:-artgrid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-artgrid}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - artgrid-net
+
+volumes:
+  pg_data:
+
+networks:
+  artgrid-net:
+    driver: bridge
