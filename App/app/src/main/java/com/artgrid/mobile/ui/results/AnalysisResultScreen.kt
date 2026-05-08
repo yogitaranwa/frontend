@@ -1,6 +1,6 @@
 /**
  * AnalysisResultScreen.kt
- * Responsibility : Image playground — all Native C++ filters (F-07→F-19) + overlays.
+ * Responsibility : Image playground — on-device Native C++ filters and overlays.
  *
  * Changes in this version:
  *  - Grid step selector (1 / 2 / 5 / 10 cm chips) with explicit "Adjacent lines: X cm" readout

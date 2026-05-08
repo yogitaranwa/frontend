@@ -1,5 +1,5 @@
 /**
- * palette_quant.cpp  ·  F-14 · Oklab median-cut + greedy merge palette quantisation
+ * palette_quant.cpp · Oklab median-cut + greedy merge palette quantisation
  *
  * Pipeline:
  *   1. Downsample to 200×200 via bilinear interpolation

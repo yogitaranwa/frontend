@@ -4,7 +4,7 @@ Responsibility : In-memory per-device hourly rate limiting for all three inferen
 Pattern used   : Token bucket (fixed window per hour, keyed by device_id + endpoint).
 Dependencies   : none (stdlib only)
 
-FL-02 acknowledgement: counters reset on process restart. Acceptable for demo.
+Note: in-memory counters reset when the ML process restarts; that is acceptable for demos.
 For deployed, replace with a Redis TTL counter.
 """
 import threading

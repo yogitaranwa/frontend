@@ -1,5 +1,5 @@
 /**
- * edge_pipeline.cpp  ·  F-07 · Novel Oklab-domain edge extraction
+ * edge_pipeline.cpp · Novel Oklab-domain edge extraction
  *
  * Pipeline (all 6 steps implemented from first principles):
  *   1. ARGB bitmap → Oklab L-channel
@@ -207,7 +207,7 @@ static void fit_pca_line(
 // ── Main entry point ──────────────────────────────────────────────────────────
 
 /**
- * Runs the F-07 edge pipeline on [argb_in] (w×h ARGB8 pixels).
+ * Runs the edge pipeline on [argb_in] (w×h ARGB8 pixels).
  * [sensitivity_lambda] ∈ [0.5, 3.0] — higher = more edges detected.
  * [overlay_on_source]  — true: draw edges over source; false: white-on-black.
  * Returns ARGB8 result in [argb_out] (same dimensions).

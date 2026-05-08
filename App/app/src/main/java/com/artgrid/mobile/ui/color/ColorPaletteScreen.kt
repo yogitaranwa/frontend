@@ -1,8 +1,8 @@
 /**
  * ColorPaletteScreen.kt
- * F-12 : Tap-to-sample image colors (ColorSampleResult: Oklab/HSL/Kelvin)
- * F-13 : K-M paint mix — runKmSolve(r, g, b, medium: Int = 0)
- * F-14 : Auto-palette extraction (K-means dominant colors)
+ * Tap-to-sample image colours (ColorSampleResult: Oklab/HSL/Kelvin)
+ * K–M paint mix — runKmSolve(r, g, b, medium: Int = 0)
+ * Auto-palette extraction (K-means dominant colours)
  * NEW  : 8 artist palette groups × 16 swatches each, fully toggleable.
  *        Tap any artist swatch to get its K-M paint mix directly.
  * NEW  : Shadow construction overlay (perspective guides, light-type presets).

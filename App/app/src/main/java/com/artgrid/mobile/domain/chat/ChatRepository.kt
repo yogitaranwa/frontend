@@ -1,6 +1,6 @@
 /**
  * ChatRepository.kt
- * Responsibility : Interface contract for the F-24 AI chatbot SSE endpoint.
+ * Responsibility : Interface contract for the AI chatbot SSE endpoint.
  * API calls      : POST /api/v1/chat (streaming)
  * Injects        : none (interface)
  */
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface ChatRepository {
 
     /**
-     * F-24 · Artist AI Chatbot.
+     * Stream artist AI chat completions.
      *
      * Opens an SSE stream to the ai-proxy and returns a [Flow] of [SseEvent]s.
      * The flow completes when [SseEvent.Done] is emitted or the stream errors.

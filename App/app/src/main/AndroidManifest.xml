@@ -12,7 +12,7 @@
     <!-- READ_MEDIA_IMAGES replaces READ_EXTERNAL_STORAGE on Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
-    <!-- CAMERA — F-27-MVP trace/camera-underlay mode (CameraX) -->
+    <!-- CAMERA — trace mode / camera underlay (CameraX) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 

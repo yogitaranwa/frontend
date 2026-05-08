@@ -21,12 +21,12 @@ add_library(
     artgrid-native
     SHARED
     artgrid_math.cpp      # Oklab/sRGB/XYZ conversions, core math utilities
-    edge_pipeline.cpp     # F-07: Novel Oklab-domain edge extraction
-    perspective.cpp       # F-09: Corner detection + DLT homography warp
-    color_sampler.cpp     # F-12: Chamfer-distance aperture colour sampling
-    km_solver.cpp         # F-13: Kubelka-Munk 31-band spectral solver
-    palette_quant.cpp     # F-14: Oklab median-cut + greedy merge palette
-    image_filters.cpp     # F-08, F-16, F-17, F-18, F-19
+    edge_pipeline.cpp     # Oklab-domain edge extraction
+    perspective.cpp       # Corner detection + DLT homography warp
+    color_sampler.cpp     # Chamfer-distance aperture colour sampling
+    km_solver.cpp         # Kubelka-Munk 31-band spectral solver
+    palette_quant.cpp     # Oklab median-cut + greedy merge palette
+    image_filters.cpp     # Greyscale, heatmap, WB, invert, Kuwahara
     jni_bridge.cpp        # All JNI_* entry points — no business logic here
 )
 

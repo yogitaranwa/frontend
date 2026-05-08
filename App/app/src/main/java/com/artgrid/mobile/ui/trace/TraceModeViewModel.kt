@@ -1,6 +1,6 @@
 /**
  * TraceModeViewModel.kt
- * Responsibility : F-27-MVP camera-underlay (trace) mode state.
+ * Responsibility : Trace / camera-underlay mode state.
  *                  Manages reference image overlay transform (translate, scale, rotate, opacity).
  *                  Camera stream is managed by CameraX in the composable — VM owns the overlay only.
  * Pattern used   : HiltViewModel + StateFlow

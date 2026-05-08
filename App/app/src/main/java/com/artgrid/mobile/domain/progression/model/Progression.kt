@@ -1,6 +1,6 @@
 /**
  * Progression.kt
- * Responsibility : Domain models for multi-stage artwork progression (F-32).
+ * Responsibility : Domain models for multi-stage artwork progression.
  * Pattern used   : Immutable domain models
  * Dependencies   : none
  */

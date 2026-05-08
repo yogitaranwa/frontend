@@ -1,6 +1,6 @@
 /**
  * CropScreen.kt
- * Responsibility : F-28 in-app non-destructive image crop.
+ * Responsibility : In-app non-destructive image crop.
  *                  Renders crop handles over the image; the confirmed crop rect is passed
  *                  back to the caller — actual pixel cropping happens in the canvas pipeline.
  * Pattern used   : Stateless composable + HiltViewModel

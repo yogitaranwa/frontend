@@ -1,6 +1,6 @@
 /**
  * ChatViewModel.kt
- * Responsibility : Manages the F-24 AI chatbot conversation — accumulates SSE delta
+ * Responsibility : Manages the AI Artist chat conversation — accumulates SSE delta
  *                  tokens into chat messages and exposes the full history as StateFlow.
  * API calls      : POST /api/v1/chat (streaming, via ChatRepository)
  * Injects        : ChatRepository
@@ -54,7 +54,7 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * F-24 · Send a message to the AI chatbot.
+     * Send a message to the AI chatbot.
      * [imageB64]: optional base64-encoded current reference image.
      *
      * Flow:

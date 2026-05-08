@@ -1,6 +1,6 @@
 /**
  * ChatScreen.kt
- * Responsibility : F-24 Artist AI Chatbot UI — message list + streaming input field.
+ * Responsibility : AI Artist chat UI — message list + streaming input field.
  * API calls      : POST /api/v1/chat (streaming, via ChatViewModel)
  * Injects        : ChatViewModel (hiltViewModel)
  */

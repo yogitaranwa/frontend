@@ -1,5 +1,5 @@
 /**
- * km_solver.cpp  ·  F-13 · Kubelka-Munk 31-band spectral paint-mix solver
+ * km_solver.cpp · Kubelka-Munk 31-band spectral paint-mix solver
  *
  * 7-step pipeline (all from first principles — no library code):
  *   1. sRGB → Linear RGB → CIE XYZ D65

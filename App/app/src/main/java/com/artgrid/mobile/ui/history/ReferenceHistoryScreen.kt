@@ -1,6 +1,6 @@
 /**
  * ReferenceHistoryScreen.kt
- * Responsibility : F-31 reference history — browse, tag-filter, and manage saved reference images.
+ * Responsibility : Reference history — browse, tag-filter, and manage saved reference images.
  *                  Users can save new images from gallery, edit labels, and delete entries.
  * Pattern used   : Stateless composable + HiltViewModel
  * Dependencies   : ReferenceHistoryViewModel, Coil

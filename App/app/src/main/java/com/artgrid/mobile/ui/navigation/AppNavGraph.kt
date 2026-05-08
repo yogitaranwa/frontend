@@ -3,26 +3,26 @@
  * Responsibility : Single NavHost defining all routes, the ProtectedNavigation wrapper,
  *                  and logout-event collection from AuthInterceptor.
  *
- * Route table (v2 — 17 distinct screens):
- * | Route                               | Screen                   | Feature  |
- * |-------------------------------------|--------------------------|----------|
- * | auth/sign-in                        | SignInScreen             | —        |
- * | home                                | HomeScreen               | —        |
- * | chat                                | ChatScreen               | —        |
- * | playground?uri={uri}                | AnalysisResultScreen     | F-07…19  |
- * | face-studio?uri={uri}&key={key}     | FaceStudioScreen         | F-10     |
- * | face-detail?uri={uri}&bbox={b}      | FaceDetailScreen         | F-10     |
- * | unified-face?uri={uri}              | UnifiedFaceStudioScreen  | F-34     |
- * | object-locator?uri={uri}&key={k}    | ObjectLocatorScreen      | F-11     |
- * | object-detail?uri={uri}&bbox={b}&l  | ObjectDetailScreen       | F-11     |
- * | background-remover?uri={uri}&key={k}| BackgroundRemoverScreen  | F-22     |
- * | color-palette?uri={uri}             | ColorPaletteScreen       | F-17…21  |
- * | crop?uri={uri}                      | CropScreen               | F-28     |
- * | paper-mapping?uri={uri}             | PaperMappingScreen       | F-29     |
- * | trace?uri={uri}                     | TraceModeScreen          | F-27-MVP |
- * | reference-history                   | ReferenceHistoryScreen   | F-31     |
- * | progression-list                    | ProgressionListScreen    | F-32     |
- * | progression-detail?id={id}          | ProgressionDetailScreen  | F-32     |
+ * Route table (17 distinct screens):
+ * | Route                               | Screen                   | Area                         |
+ * |-------------------------------------|--------------------------|------------------------------|
+ * | auth/sign-in                        | SignInScreen             | —                            |
+ * | home                                | HomeScreen               | —                            |
+ * | chat                                | ChatScreen               | —                            |
+ * | playground?uri={uri}                | AnalysisResultScreen     | native playground / filters  |
+ * | face-studio?uri={uri}&key={key}     | FaceStudioScreen         | legacy face + landmarks      |
+ * | face-detail?uri={uri}&bbox={b}      | FaceDetailScreen         | face region detail           |
+ * | unified-face?uri={uri}              | UnifiedFaceStudioScreen  | unified human + anime face    |
+ * | object-locator?uri={uri}&key={k}    | ObjectLocatorScreen      | object detection overlay     |
+ * | object-detail?uri={uri}&bbox={b}&l  | ObjectDetailScreen       | single object detail         |
+ * | background-remover?uri={uri}&key={k}| BackgroundRemoverScreen  | segmentation / mask preview  |
+ * | color-palette?uri={uri}             | ColorPaletteScreen       | colour + shadow tools        |
+ * | crop?uri={uri}                      | CropScreen               | in-app crop                  |
+ * | paper-mapping?uri={uri}             | PaperMappingScreen       | paper size mapping           |
+ * | trace?uri={uri}                     | TraceModeScreen          | trace / camera underlay       |
+ * | reference-history                   | ReferenceHistoryScreen   | saved references             |
+ * | progression-list                    | ProgressionListScreen    | progression list             |
+ * | progression-detail?id={id}          | ProgressionDetailScreen  | progression comparator        |
  *
  * API calls      : none (navigation glue only)
  * Injects        : AuthViewModel (shared), AuthInterceptor (via Hilt)
@@ -100,27 +100,27 @@ object Routes {
     const val COLOR_PALETTE = "color-palette?uri={uri}"
     fun colorPalette(encodedUri: String) = "color-palette?uri=$encodedUri"
 
-    // F-34 Unified Face Detection
+    // Unified face (`/infer/face_unified`)
     const val UNIFIED_FACE = "unified-face?uri={uri}"
     fun unifiedFace(encodedUri: String) = "unified-face?uri=$encodedUri"
 
-    // F-28 In-app crop
+    // In-app crop
     const val CROP = "crop?uri={uri}"
     fun crop(encodedUri: String) = "crop?uri=$encodedUri"
 
-    // F-29 Paper mapping
+    // Paper mapping
     const val PAPER_MAPPING = "paper-mapping?uri={uri}"
     fun paperMapping(encodedUri: String) = "paper-mapping?uri=$encodedUri"
 
-    // F-27-MVP Camera underlay / trace mode
+    // Camera underlay / trace mode
     const val TRACE = "trace?uri={uri}"
     fun trace(encodedUri: String) = "trace?uri=$encodedUri"
     const val TRACE_NOREF = "trace"
 
-    // F-31 Reference history (no image argument — accessed from home)
+    // Reference history (no image argument — accessed from home)
     const val REFERENCE_HISTORY = "reference-history"
 
-    // F-32 Progression comparator
+    // Progression comparator
     const val PROGRESSION_LIST   = "progression-list"
     const val PROGRESSION_DETAIL = "progression-detail?id={id}"
     fun progressionDetail(id: Long) = "progression-detail?id=$id"
@@ -218,7 +218,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── Playground (generic filters, F-07 to F-19) ────────────────────────
+        // ── Playground (on-device native filters) ───────────────────────────
         composable(
             route     = Routes.PLAYGROUND,
             arguments = listOf(navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -380,7 +380,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-34 Unified Face Studio ──────────────────────────────────────────
+        // ── Unified face studio ───────────────────────────────────────────────
         composable(
             route     = Routes.UNIFIED_FACE,
             arguments = listOf(navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -395,7 +395,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-28 Crop ─────────────────────────────────────────────────────────
+        // ── Crop ───────────────────────────────────────────────────────────────
         composable(
             route     = Routes.CROP,
             arguments = listOf(navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -414,7 +414,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-29 Paper Mapping ────────────────────────────────────────────────
+        // ── Paper mapping ─────────────────────────────────────────────────────
         composable(
             route     = Routes.PAPER_MAPPING,
             arguments = listOf(navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -429,7 +429,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-27-MVP Trace Mode (with optional reference) ─────────────────────
+        // ── Trace mode (optional reference) ─────────────────────────────────
         composable(
             route     = Routes.TRACE,
             arguments = listOf(navArgument("uri") { type = NavType.StringType; nullable = true; defaultValue = null }),
@@ -446,7 +446,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-31 Reference History ────────────────────────────────────────────
+        // ── Reference history ────────────────────────────────────────────────
         composable(Routes.REFERENCE_HISTORY) {
             ProtectedRoute(authState.isAuthenticated, navController) {
                 ReferenceHistoryScreen(
@@ -458,7 +458,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-32 Progression List ─────────────────────────────────────────────
+        // ── Progression list ─────────────────────────────────────────────────
         composable(Routes.PROGRESSION_LIST) {
             ProtectedRoute(authState.isAuthenticated, navController) {
                 ProgressionListScreen(
@@ -468,7 +468,7 @@ fun AppNavGraph(
             }
         }
 
-        // ── F-32 Progression Detail ───────────────────────────────────────────
+        // ── Progression detail ───────────────────────────────────────────────
         composable(
             route     = Routes.PROGRESSION_DETAIL,
             arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),

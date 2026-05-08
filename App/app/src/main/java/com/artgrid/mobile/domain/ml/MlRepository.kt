@@ -18,26 +18,26 @@ import java.io.File
 interface MlRepository {
 
     /**
-     * F-10 · Facial Feature Detection (legacy, single human face).
+     * Facial feature detection (legacy single human face).
      * [imageFile]: JPEG on device disk, resized to max 1200px before upload.
      */
     suspend fun inferFace(imageFile: File): ApiResult<FaceResult>
 
     /**
-     * F-34 · Unified Human + Animated Face Detection.
+     * Unified human + animated face detection.
      * [imageFile]: JPEG on device disk, resized to max 1200px before upload.
      * Returns multi-face, multi-domain result via ArtGridFaceDomainFusion.
      */
     suspend fun inferFaceUnified(imageFile: File): ApiResult<UnifiedFaceResult>
 
     /**
-     * F-11 · Object Localisation.
+     * Object localisation.
      * [imageFile]: JPEG on device disk, resized to max 640px before upload.
      */
     suspend fun inferObjects(imageFile: File): ApiResult<ObjectInferResult>
 
     /**
-     * F-22 · Background Removal.
+     * Subject/background segmentation (mask PNG).
      * [imageFile]: JPEG on device disk, resized to max 800px before upload.
      * Returns raw PNG mask bytes — UI layer composites with Skia/Canvas.
      */

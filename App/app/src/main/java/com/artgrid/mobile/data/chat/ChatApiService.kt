@@ -18,7 +18,7 @@ import retrofit2.http.POST
 interface ChatApiService {
 
     /**
-     * F-24 · Artist AI Chatbot — raw streaming endpoint.
+     * Artist AI chatbot — raw streaming endpoint.
      * Returns ResponseBody so the caller can read the SSE stream directly.
      * In practice, ChatRepositoryImpl bypasses Retrofit and issues a raw OkHttp
      * request to avoid Retrofit's buffered response handling. This declaration

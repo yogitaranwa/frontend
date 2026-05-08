@@ -72,8 +72,8 @@ async def infer_face(
     settings: Settings = Depends(get_settings),
 ) -> FaceInferResponse:
     """
-    F-10 · Human Face Detection — dlib HOG + 68-pt landmark regressor (single face).
-    Legacy endpoint; prefer /infer/face_unified for multi-face and animated support (F-34).
+    Human face detection — dlib HOG + 68-point landmark regressor (single face).
+    Legacy endpoint; prefer `/infer/face_unified` for multi-face and animated-style support.
     """
     _check_rate(device_id, "face", settings.face_rate_limit)
     img = await _read_and_validate(image, _FACE_MAX_BYTES, _FACE_MAX_PX)
@@ -95,10 +95,10 @@ async def infer_face_unified(
     settings: Settings = Depends(get_settings),
 ) -> FaceUnifiedResponse:
     """
-    F-34 · Unified Human + Animated Face Detection.
+    Unified human + animated face detection.
     Runs dlib HOG (human) + YOLOv8-animeface ONNX (animated) via ArtGridFaceDomainFusion.
-    Optionally attaches 28-pt anime landmarks (F-34-LM) when return_landmarks=true
-    and the landmark model is loaded.
+    Optionally attaches 28-point anime landmarks when `return_landmarks=true`
+    and the optional landmark model is loaded.
     Rate-limited: 60 requests/device/hour.
     """
     _check_rate(device_id, "face_unified", settings.face_unified_rate_limit)
@@ -130,7 +130,7 @@ async def infer_objects(
     models: ModelStore = Depends(get_model_store),
     settings: Settings = Depends(get_settings),
 ) -> ObjectInferResponse:
-    """F-11 · Object Localisation — YOLOv8n ONNX inference."""
+    """Object localisation — YOLOv8n ONNX inference."""
     _check_rate(device_id, "objects", settings.objects_rate_limit)
     img = await _read_and_validate(image, _OBJECTS_MAX_BYTES, _OBJECTS_MAX_PX)
     svc = InferService(models)
@@ -146,7 +146,7 @@ async def infer_segment(
     models: ModelStore = Depends(get_model_store),
     settings: Settings = Depends(get_settings),
 ) -> Response:
-    """F-22 · Background Removal — u2netp ONNX. Returns Content-Type: image/png mask."""
+    """Background separation — U²-Netp ONNX. Returns Content-Type: image/png mask."""
     _check_rate(device_id, "segment", settings.segment_rate_limit)
     img = await _read_and_validate(image, _SEGMENT_MAX_BYTES, _SEGMENT_MAX_PX)
     svc = InferService(models)

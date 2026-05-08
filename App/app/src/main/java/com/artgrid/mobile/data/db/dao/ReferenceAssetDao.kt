@@ -1,6 +1,6 @@
 /**
  * ReferenceAssetDao.kt
- * Responsibility : Room DAO for the reference_assets table (F-31 local history).
+ * Responsibility : Room DAO for the reference_assets table (local history).
  * Pattern used   : Room DAO
  * Dependencies   : Room, Coroutines Flow
  */

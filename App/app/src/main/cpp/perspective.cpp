@@ -1,8 +1,8 @@
 /**
- * perspective.cpp  ·  F-09 · Novel Oklab-domain perspective corner detection
+ * perspective.cpp · Novel Oklab-domain perspective corner detection
  *
  * Pipeline:
- *   1. Oklab L-channel + custom Sobel gradient (same as F-07 step 1-3)
+ *   1. Oklab L-channel + custom Sobel gradient (same as edge pipeline steps 1–3)
  *   2. Per-boundary argmax scan (top/bottom/left/right 20%)
  *   3. Orientation-confidence weighting per boundary
  *   4. Weighted PCA line fit + 2-pass σ outlier rejection per boundary

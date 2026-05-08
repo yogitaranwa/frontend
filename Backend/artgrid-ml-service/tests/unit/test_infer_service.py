@@ -19,7 +19,7 @@ def _blank_bgr(h: int = 480, w: int = 640) -> np.ndarray:
     return np.zeros((h, w, 3), dtype=np.uint8)
 
 
-# ── F-10 Face detection ───────────────────────────────────────────────────────
+# ── Legacy single-face detection ────────────────────────────────────────────────
 
 class TestInferFace:
     def test_raises_when_model_not_loaded(self):
@@ -43,7 +43,7 @@ class TestInferFace:
         assert result.landmarks == []
 
 
-# ── F-34 Unified face detection ───────────────────────────────────────────────
+# ── Unified face detection ──────────────────────────────────────────────────────
 
 class TestInferFaceUnified:
     def test_returns_empty_faces_when_no_models_loaded(self):
@@ -167,7 +167,7 @@ class TestInferFaceUnified:
         assert result.faces[0].landmarks_28 == []
 
 
-# ── F-11 Object detection ─────────────────────────────────────────────────────
+# ── Object detection ────────────────────────────────────────────────────────────
 
 class TestInferObjects:
     def test_raises_when_model_not_loaded(self):
@@ -186,7 +186,7 @@ class TestInferObjects:
         assert result.model == "yolov8n"
 
 
-# ── F-22 Segmentation ─────────────────────────────────────────────────────────
+# ── Segmentation ──────────────────────────────────────────────────────────────
 
 class TestInferSegment:
     def test_raises_when_model_not_loaded(self):

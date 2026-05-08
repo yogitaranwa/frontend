@@ -1,6 +1,6 @@
 /**
  * ProgressionListScreen.kt
- * Responsibility : F-32 — list of all artwork progressions with create/delete controls.
+ * Responsibility : List of artwork progressions with create/delete controls.
  * Pattern used   : Stateless composable + HiltViewModel
  * Dependencies   : ProgressionViewModel
  */

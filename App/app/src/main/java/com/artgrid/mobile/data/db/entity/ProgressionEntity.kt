@@ -1,7 +1,7 @@
 /**
  * ProgressionEntity.kt
- * Responsibility : Room entities for progressions + progression_stages tables
- *                  — multi-stage artwork comparator (F-32).
+ * Responsibility : Room entities for progressions + progression_stages —
+ *                  multi-stage artwork comparator data.
  * Pattern used   : Room entity / relational data
  * Dependencies   : Room
  */

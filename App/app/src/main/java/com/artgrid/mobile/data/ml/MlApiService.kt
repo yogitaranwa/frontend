@@ -22,7 +22,7 @@ import retrofit2.http.Part
 interface MlApiService {
 
     /**
-     * F-10 · Facial Feature Detection (legacy single-face human endpoint).
+     * Facial feature detection (legacy single-face human endpoint).
      * Kept for backward compatibility — prefer [inferFaceUnified] for new screens.
      * Image: JPEG, max 1200px on longest side, max 5MB.
      */
@@ -33,7 +33,7 @@ interface MlApiService {
     ): FaceInferResponseDto
 
     /**
-     * F-34 · Unified Human + Animated Face Detection.
+     * Unified human + animated face detection.
      * Runs dlib (human) + YOLOv8-animeface ONNX (animated) in parallel on the GPU VM.
      * ArtGridFaceDomainFusion applies cross-head NMS and classifies each face by domain.
      * Image: JPEG, max 1200px on longest side, max 5MB.
@@ -46,7 +46,7 @@ interface MlApiService {
     ): FaceUnifiedResponseDto
 
     /**
-     * F-11 · Object Localisation via YOLOv8n (onnxruntime-gpu on VM).
+     * Object localisation via YOLOv8n (onnxruntime-gpu on ML host when available).
      * Image: JPEG, max 640px, max 2MB.
      */
     @Multipart
@@ -56,7 +56,7 @@ interface MlApiService {
     ): ObjectInferResponseDto
 
     /**
-     * F-22 · Background Removal via u2netp (GPU-accelerated on VM).
+     * Subject/background segmentation via U²-Netp (GPU on ML host when available).
      * Image: JPEG, max 800px, max 3MB.
      * Response: image/png binary (alpha mask). Returned as raw ResponseBody.
      */

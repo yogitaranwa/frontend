@@ -1,6 +1,6 @@
 /**
  * ProgressionRepositoryImpl.kt
- * Responsibility : Implements ProgressionRepository using Room DAO (F-32).
+ * Responsibility : Implements ProgressionRepository using Room DAO.
  * Pattern used   : Repository implementation
  * Dependencies   : ProgressionDao, ProgressionMapper
  */

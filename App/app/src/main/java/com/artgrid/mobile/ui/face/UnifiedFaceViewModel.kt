@@ -1,6 +1,6 @@
 /**
  * UnifiedFaceViewModel.kt
- * Responsibility : F-34 unified human + animated face detection ViewModel.
+ * Responsibility : Unified human + animated face detection ViewModel.
  *                  Calls POST /infer/face_unified, holds multi-face result, tracks
  *                  selected face index for tap-to-select UX.
  * Pattern used   : HiltViewModel + StateFlow

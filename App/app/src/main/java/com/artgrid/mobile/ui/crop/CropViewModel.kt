@@ -1,6 +1,6 @@
 /**
  * CropViewModel.kt
- * Responsibility : Manages crop rectangle state for F-28 in-app non-destructive crop.
+ * Responsibility : Manages crop rectangle state for in-app non-destructive crop.
  *                  Exposes normalised crop rect [0,1] that the UI layer renders as handles.
  * Pattern used   : HiltViewModel + StateFlow
  * Dependencies   : none (pure UI state — actual pixel crop is a Canvas draw operation)

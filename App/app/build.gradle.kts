@@ -174,12 +174,12 @@ dependencies {
     // Coroutines
     implementation(libs.coroutines.android)
 
-    // Room — F-31 (reference history) + F-32 (progression comparator) local SQLite
+    // Room — reference history + progression comparator (local SQLite)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
-    // CameraX — F-27-MVP trace/camera-underlay mode
+    // CameraX — trace / camera-underlay mode
     implementation(libs.camerax.core)
     implementation(libs.camerax.camera2)
     implementation(libs.camerax.lifecycle)

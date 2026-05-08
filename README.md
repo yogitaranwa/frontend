@@ -1,12 +1,34 @@
 # ArtGrid
 
-**ArtGrid** is a full-stack **Android** app for artists and learners who work from reference photos. It combines **on-device C++ image processing** (JNI) with **cloud ML** (face landmarks, object detection, U²-Net segmentation) and an **SSE-streamed** “AI Artist” chat backed by Gemini—so you can analyze references in the cloud, then refine geometry and colour on the device with calibration grids, paper mapping, trace mode, palette tools, and progression tracking.
+<div align="center">
+
+### Computer Vision–Assisted Spatial Mapping Mobile Application for Digital-to-Physical Proportional Scaling
+
+</div>
+
+**ArtGrid** is a **mobile application** that replaces a traditional static drawing grid with something smarter and more interactive. Think of it as a **digital proportional divider**: instead of guessing spacing on paper, you work from a **reference photo**. **Machine learning models** on the backend find **structural landmarks** (eyes, nose, chin, outlines, detected objects and subject masks depending on which tool you use). The app then helps you turn **pixel distances on the reference** into **real-world centimeter measurements** for a **specific physical canvas**—for example A4, A3 etc—using **shared canvas calibration**, grids, paper mapping and native geometry tools.
+
+Behind that artist-facing idea sits a **full-stack** setup: **on-device C++ image processing** (JNI) combined with **cloud ML** (face landmarks, **unified** human + stylised face fusion, object detection, U²-Net segmentation) and an **SSE-streamed** “AI Artist” chatbot through a backend proxy backed by Gemini. You analyse references in the cloud when you need ML, then refine edges, colour, lighting and layout **on the phone** without a round-trip for every tweak.
+
+**Important:** The **ML models themselves run on the backend** (loaded from `Backend/models/` in Docker; see **[Technical documentation](App/docs/TECHNICAL%20DOCUMENTATION.md)**). The Android app talks to that service; it does not bundle the heavy ONNX/dlib weights.
 
 <p align="center">
   <a href="https://github.com/yogitaranwa/ArtGrid">⭐ Star this repo</a>
   &nbsp;·&nbsp;
+  <a href="https://github.com/yogitaranwa/ArtGrid/releases">Download APK</a>
+  &nbsp;·&nbsp;
   <a href="https://github.com/yogitaranwa/ArtGrid/issues">Report an issue</a>
 </p>
+
+## Problem
+
+Turning a **reference on screen** into accurate **marks on real paper** usually means fixed grids, rulers and guesswork. You measure pixels by eye, mentally rescale to A4 or A3 and lose alignment between **what the photo shows** and **what your hand draws**—especially for faces, figures and structured scenes.
+
+**Digital and physical scale stay disconnected.**
+
+## Solution
+
+**ArtGrid** bridges that gap with **computer vision on the backend** (landmarks, detection, segmentation), **native geometry** on the phone (edges, calibration, colour math) and **explicit paper mapping** so **pixel distances become centimetre‑faithful overlays** on the canvas size you choose—without treating every edit as another round-trip to the server.
 
 | Layer | Stack |
 |-------|--------|
@@ -17,11 +39,9 @@
 
 ## Overview
 
-- **Reference-first workflow:** import an image, probe ML services when available, then use playgrounds and native filters without round-trips for every edit.
-- **Hybrid compute:** heavy geometry/colour math runs **on-device**; face/object/segment inference runs on the **ML service**; chat streams through the **AI proxy** (not direct Gemini from the phone).
-- **Production-ready paths:** OAuth/JWT auth, optional Cloud SQL, GPU ML on RunPod or similar, HTTPS endpoints wired via `demo.properties` / `BuildConfig` (see [technical documentation](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)).
-
-**Canonical repository:** [github.com/yogitaranwa/ArtGrid](https://github.com/yogitaranwa/ArtGrid)
+- **Reference-first workflow:** import an image, call the ML service when it is healthy, then use playgrounds and native filters locally so every small edit does not hit the network.
+- **Hybrid compute:** heavy geometry and colour math runs **on-device**; face, object, and segmentation inference runs on the **ML service**; chat streams through the **AI proxy** (the phone does not call Gemini directly).
+- **Production-ready paths:** OAuth/JWT auth, optional Cloud SQL, GPU ML on RunPod or similar, HTTPS endpoints wired via `demo.properties` / `BuildConfig` (see [Technical documentation](App/docs/TECHNICAL%20DOCUMENTATION.md)).
 
 ---
 
@@ -46,7 +66,7 @@
 
 ## Screenshots
 
-Phone captures and UI walkthroughs live in **`App/images/`** (paths below are relative to the **repository root** so they render on GitHub).
+Phone captures and UI walkthroughs live in **`App/images/`**
 
 <p align="center">
   <img src="App/images/Home.jpeg" alt="Home hub" width="200" />
@@ -68,20 +88,55 @@ Phone captures and UI walkthroughs live in **`App/images/`** (paths below are re
 
 ### Runtime flow
 
+At a high level the app always keeps **three different backend roles** in play (plus local storage):
+
 ```mermaid
-flowchart LR
-  A[Android app] -->|Google Sign-In + JWT| B[Auth service]
-  A -->|Bearer JWT + image| C[ML service]
-  A -->|X-Device-Token + SSE| D[AI proxy]
-  A --> E[(Room SQLite)]
-  D --> F[Gemini]
+flowchart TB
+  subgraph phone [Android app]
+    UI[Compose UI / ViewModels]
+    Native[JNI libartgrid-native]
+    Room[(Room SQLite)]
+    UI --> Native
+    UI --> Room
+  end
+  subgraph backends [Backend services]
+    Auth[Auth service JWT]
+    ML[ML service GPU or CPU]
+    Proxy[AI proxy SSE]
+  end
+  Gemini[Gemini API]
+  UI -->|Sign-In then Google ID token| Auth
+  UI -->|Bearer JWT + multipart image| ML
+  UI -->|X-Device-Token + POST body| Proxy
+  Proxy --> Gemini
+  Auth -.->|JWT issue / refresh| UI
 ```
 
-- **Auth** — Google ID token exchange, JWT + refresh; encrypted PII in PostgreSQL when not in demo mode.
-- **ML** — JWT on infer routes, multipart limits, per-device rate limits; GPU service optional in production.
-- **AI proxy** — `POST /api/v1/chat` with **SSE**; hourly **HMAC** device token.
+**Step-by-step in plain language**
 
-### Design diagrams (repo assets)
+1. **Launch & sign-in (optional but normal path)** — The user signs in with Google. The app sends the Google ID token to the **auth service**, which validates it and returns **access and refresh JWTs**. Those tokens are stored on device and attached to **auth** and **ML** HTTP clients.
+
+2. **Home & ML health** — On the hub screen the app calls **`/health`** on the ML service. If the service reports OK and models are loaded, buttons for face, unified face, objects, and segmentation stay enabled. If the backend is down or JWTs are wrong, ML actions stay disabled and on-device tools still work.
+
+3. **Reference import** — The user picks an image. The URI is passed through navigation arguments to playgrounds, ML flows, crop, paper mapping, colour tools, and history.
+
+4. **ML inference** — For a chosen feature, the app builds a JPEG within size limits, attaches the **Bearer JWT**, and posts to the right route (`/infer/face`, `/infer/face_unified`, `/infer/objects`, `/infer/segment`). The ML container loads **dlib**, **YOLO ONNX**, and **U²-Net** weights from its **`/app/models`** volume (see `Backend/docker-compose.yml`). Results return as JSON or binary mask data.
+
+5. **Passing big ML payloads** — Large results are not stuffed into navigation URLs. The app stores them in **`NavResultHolder`** and passes a short key into the next screen (face studio, object locator, background remover, etc.).
+
+6. **On-device refinement** — Edges, perspective, tonal maps, palettes, Kubelka–Munk, and grids run in **native code** with bitmap size caps so the UI stays responsive.
+
+7. **AI Artist chatbot** — Chat uses a **separate** base URL and **does not** use the JWT interceptor the same way. The app builds an hourly **HMAC device token** and opens an **SSE** stream from the **AI proxy**, which forwards to Gemini. Tokens arrive in chunks and append live in the UI.
+
+8. **Local persistence** — Saved references, progression projects, and stages live in **Room** only on the device.
+
+**Auth** — Google ID token exchange, JWT + refresh; encrypted PII in PostgreSQL when not in demo mode.
+
+**ML** — JWT on infer routes, multipart limits, per-device rate limits; GPU service optional in production. **Model files live on the server** under `Backend/models/` when using Docker (not shipped inside the APK).
+
+**AI proxy** — `POST /api/v1/chat` with **SSE**; hourly **HMAC** device token.
+
+### Design diagrams
 
 Static figures for reports and deep dives—also under **`App/images/`**:
 
@@ -95,59 +150,61 @@ Static figures for reports and deep dives—also under **`App/images/`**:
 | [`App/images/state_machine.png`](App/images/state_machine.png) | State transitions |
 | [`App/images/usecase.png`](App/images/usecase.png) | Use-case map |
 
-**Model evaluation plots** (e.g. [`confusion_matrix.png`](App/images/confusion_matrix.png), PR/F1 curves) live in the same folder for coursework or benchmarking references.
+### Model evaluation plots (`App/images/`)
 
-Full route tables, env vars, and Cloud Run / RunPod checklists: **[Technical documentation](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)**.
+Metrics exported alongside training / validation (YOLO-style curve naming used in-repo):
+
+| File | What it shows |
+|------|----------------|
+| [`App/images/confusion_matrix.png`](App/images/confusion_matrix.png) | **Confusion matrix** — predicted vs true labels (classification / condensed detection metrics). |
+| [`App/images/PR_curve.png`](App/images/PR_curve.png) | **Precision–recall curve** — trade-off across thresholds (often aggregated or macro/micro). |
+| [`App/images/P_curve.png`](App/images/P_curve.png) | **Precision curve** — precision vs threshold or confidence (per training run export). |
+| [`App/images/R_curve.png`](App/images/R_curve.png) | **Recall curve** — recall vs threshold or confidence. |
+| [`App/images/F1_curve.png`](App/images/F1_curve.png) | **F1 curve** — F1 score vs threshold (harmonic mean of precision and recall). |
+
+Full route tables, env vars, and Cloud Run / RunPod checklists: **[Technical documentation](App/docs/TECHNICAL%20DOCUMENTATION.md)**.
 
 ---
 
-## Get the app (production)
+## Get the app
 
-Backends can stay deployed—**end users only need the APK** from your GitHub release.
+Backends can stay deployed—**end users only need the APK** from my GitHub release.
 
 1. Open the repo on GitHub → **Releases**.
 2. Download **`artgrid.apk`** from the latest release assets.
 3. On the phone, allow install from the browser/files app if asked, open the APK, and complete installation.
 
-> **Maintainers:** for each release, attach **`artgrid.apk`** under *Attach binaries* so the *Releases* page stays the single download location.
-
-*(Optional)* Add a **demo video** (e.g. `docs/demo.mp4`) and link it here—similar to demo-driven READMEs like [IntelliRAG / RAG_PROJECT](https://github.com/nobitanobi22/RAG_PROJECT).
-
----
-
 ## Project structure
 
 ```
-.
-├── App/
-│   ├── app/                 # Android module (Compose, JNI, Room)
-│   ├── gradle/              # Version catalog (libs.versions.toml)
-│   ├── images/              # README screenshots + architecture / ML figures
+App
+├── app/                                                    # Android client + Gradle wrapper
+│   ├── app/                                                # Compose UI, JNI, Room, manifests
+│   ├── gradle/                                             # libs.versions.toml catalog
+│   ├── images/                                             # Screenshots, architecture PNGs, metric plots (assets)
 │   ├── docs/
-│   │   └── TECHNICAL_DOCUMENTATION_ARTGRID.md
-│   ├── demo.properties      # Local URL overrides (git-ignored template)
+│   │   └── TECHNICAL DOCUMENTATION.md                       # Routes, schemas, ML contracts, deployment
+│   ├── demo.properties                                     # Optional local URLs (not committed by default)
 │   ├── settings.gradle.kts
 │   └── gradlew / gradlew.bat
-└── Backend/
-    ├── artgrid-auth-service/
-    ├── artgrid-ml-service/
-    ├── artgrid-ai-proxy/
-    └── docker-compose.yml
+└── Backend/                                                # Auth + ML + AI proxy microservices
+    ├── artgrid-auth-service/                               # Go — Google token exchange → JWT
+    ├── artgrid-ml-service/                                 # FastAPI — /infer/*, ONNX & dlib
+    ├── artgrid-ai-proxy/                                   # Go — SSE streaming chat → Gemini
+    ├── models/                                             # ONNX / dlib weights — Git LFS; mounted at /app/models in ML container
+    └── docker-compose.yml                                  # Local stack — ports 8080 / 8001 / 8082
 ```
 
-Names **`ArtGrid/`** and **`backend/`** in the long-form doc map to **`App/`** and **`Backend/`** in this repository.
-
----
 
 ## Getting started (clone & build)
 
 ### Prerequisites
 
 | Goal | Requirements |
-|------|----------------|
+|------|--------------|
 | **Clone & Android** | Git, **JDK 17**, Android Studio or Android SDK + command-line tools |
 | **Backend locally** | **Docker** + **Docker Compose**; optional **NVIDIA** stack for GPU ML profile |
-| **Production parity** | OAuth client IDs, secrets, and HTTPS base URLs per [App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md) |
+| **Production parity** | OAuth client IDs, secrets, and HTTPS base URLs per [Technical documentation](App/docs/TECHNICAL%20DOCUMENTATION.md) |
 
 ### 1. Clone
 
@@ -185,7 +242,6 @@ Signed outputs land under `App/app/build/outputs/apk/release/`. Rename/upload th
 ```bash
 cd Backend
 # Configure .env / service .env.example files (see technical doc)
-# Fetch ML models when scripts are present: download_models.sh / download_models.ps1
 docker compose up --build
 ```
 
@@ -222,7 +278,7 @@ Secrets and cloud URLs are **not** committed; keep **`JWT_SECRET`**, **`PROXY_SH
 
 ---
 
-## Security (summary)
+## Security
 
 - **PII** encrypted at rest (AES-GCM) when PostgreSQL auth is fully enabled.
 - **Transport:** HTTPS in production; no stack traces leaked to clients from ML error mapping.
@@ -232,31 +288,37 @@ Secrets and cloud URLs are **not** committed; keep **`JWT_SECRET`**, **`PROXY_SH
 
 ## Documentation & version
 
-- **[App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md](App/docs/TECHNICAL_DOCUMENTATION_ARTGRID.md)** — routes, Room schema, native modules, ML contracts, GCP / RunPod operations.
-- **App version:** **0.1.0** (`versionName` / `versionCode` in `App/app/build.gradle.kts`; verify on your branch).
-- **Doc snapshot:** April 2026 (per technical doc).
+- **[Technical documentation](App/docs/TECHNICAL%20DOCUMENTATION.md)** (`App/docs/TECHNICAL DOCUMENTATION.md`) — routes, Room schema, native modules, ML contracts, GCP operations.
+- **App version:** **0.1.0**
+- **Doc snapshot:** April 2026.
 
 ---
 
 ## Contributing
 
-Issues, ideas, and pull requests are welcome. Please open a [GitHub Issue](https://github.com/yogitaranwa/ArtGrid/issues) for bugs or feature requests. For larger changes, a short description of intent before heavy coding helps keep review focused.
+Issues, ideas and pull requests are welcome. Please open a [GitHub Issue](https://github.com/yogitaranwa/ArtGrid/issues) for bugs or feature requests. For larger changes, a short description of intent before heavy coding helps keep review focused.
 
 ---
 
 ## Author
 
-**[Yogita Kumari](https://github.com/yogitaranwa)** — maintainer of [ArtGrid](https://github.com/yogitaranwa/ArtGrid).
+<div align="center">
+
+**[Yogita Kumari](https://github.com/yogitaranwa)** · B.Tech. CSE, IIIT Manipur (2023-2027)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/yogita-kumari7)
+[![Portfolio](https://img.shields.io/badge/Portfolio-yogitakumari.vercel.app-4285F4?style=flat-square&logo=google-chrome&logoColor=white)](https://yogitakumari.vercel.app)
+[![Instagram](https://img.shields.io/badge/Instagram-Art_Gallery-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/my_graphites_grit)
 
 ---
 
 ## License
 
-This project is **open source** and released under the [**MIT License**](LICENSE). You are free to use, modify, and distribute it with attribution; see [`LICENSE`](LICENSE) for the full legal text.
+This project is **open source** and released under the **MIT License**. You are free to use, modify and distribute it with attribution.
 
 ---
 
 <p align="center">
-  <i>Made with care—built for anyone who learns and paints from reference.</i><br />
-  <sub><a href="https://github.com/yogitaranwa">Yogita Kumari</a> · <a href="https://github.com/yogitaranwa/ArtGrid">github.com/yogitaranwa/ArtGrid</a></sub>
+  <i>Made with care🤍 built for anyone who learns and paints from reference.</i><br />
+  <sub><a href="https://github.com/yogitaranwa">Yogita Kumari</a></sub>
 </p>

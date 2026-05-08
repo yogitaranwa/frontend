@@ -1,6 +1,6 @@
 /**
  * ObjectLocatorScreen.kt
- * Responsibility : F-11 Object Detection — shows full image with bounding boxes, grid-cell
+ * Responsibility : Object detection — full image with bounding boxes, grid-cell
  *                  span labels in cm, dropdown object selector, tap-to-select, zoom to cell.
  * API calls      : none (consumes ObjectInferResult passed via nav)
  * Injects        : NativePipelineViewModel, CanvasViewModel

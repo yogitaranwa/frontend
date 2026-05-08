@@ -1,6 +1,6 @@
 /**
  * PaperMappingViewModel.kt
- * Responsibility : F-29 paper-to-paper rescaling — manages source/destination paper size
+ * Responsibility : Paper-to-paper rescaling — manages source/destination paper size
  *                  selection and scaling ratio computation. Pure arithmetic, no ML calls.
  * Pattern used   : HiltViewModel + StateFlow
  * Dependencies   : none

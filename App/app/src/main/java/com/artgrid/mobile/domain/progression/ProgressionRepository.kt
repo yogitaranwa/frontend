@@ -1,6 +1,6 @@
 /**
  * ProgressionRepository.kt
- * Responsibility : Interface for multi-stage progression CRUD (F-32).
+ * Responsibility : Interface for multi-stage progression CRUD.
  * Pattern used   : Repository interface
  * Dependencies   : none (interface)
  */

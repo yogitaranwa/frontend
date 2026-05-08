@@ -1,7 +1,7 @@
 /**
  * HomeViewModel.kt
  * Responsibility : Coordinates the home screen — ML health probe, image picker
- *                  state, and per-feature ML result state for F-10/F-11/F-22.
+ *                  state, and per-feature ML result state for legacy face, objects, and segmentation.
  * API calls      : GET /health, POST /infer/face, POST /infer/objects, POST /infer/segment
  * Injects        : MlRepository
  */
@@ -87,7 +87,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * F-10 · Facial Feature Detection.
+     * Facial feature detection (legacy single-face human endpoint).
      * [imageFile]: the JPEG already scaled to max 1200px by the caller.
      */
     fun runFaceDetection(imageFile: File) {
@@ -104,7 +104,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * F-11 · Object Localisation.
+     * Object localisation.
      * [imageFile]: JPEG scaled to max 640px by the caller.
      */
     fun runObjectDetection(imageFile: File) {
@@ -128,7 +128,7 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * F-22 · Background Removal.
+     * Subject / background segmentation (mask PNG).
      * [imageFile]: JPEG scaled to max 800px by the caller.
      */
     fun runSegmentation(imageFile: File) {

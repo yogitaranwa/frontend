@@ -1,6 +1,6 @@
 /**
  * ProgressionViewModel.kt
- * Responsibility : F-32 multi-stage progression comparator ViewModel.
+ * Responsibility : Multi-stage progression comparator ViewModel.
  *                  Manages progression list, stage CRUD, and grid overlay state per stage.
  * Pattern used   : HiltViewModel + StateFlow
  * Dependencies   : ProgressionRepository

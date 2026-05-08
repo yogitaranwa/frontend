@@ -1,5 +1,5 @@
 /**
- * color_sampler.cpp  ·  F-12 · Chamfer-distance aperture colour sampling
+ * color_sampler.cpp · Chamfer-distance aperture colour sampling
  *
  * For a circular aperture of radius r centred at (cx, cy):
  *   1. Build a binary aperture mask

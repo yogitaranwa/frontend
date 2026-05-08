@@ -1,7 +1,7 @@
 /**
  * ReferenceAssetEntity.kt
  * Responsibility : Room entity for the reference_assets table — stores saved
- *                  reference images with metadata for F-31 (local history).
+ *                  reference images with metadata for local history.
  * Pattern used   : Room entity / data holder
  * Dependencies   : Room
  */

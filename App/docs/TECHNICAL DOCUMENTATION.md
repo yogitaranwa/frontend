@@ -1,12 +1,12 @@
-# ArtGrid — Complete Technical Documentation
+# ArtGrid — Technical Documentation
 
 ## Project Overview
 
-**ArtGrid** is a full-stack **Android** application for artists and learners who work from reference photos. It combines **on-device C++17 image math** (JNI) with **cloud ML inference** (face landmarks, object detection, U²-Net segmentation) and an **SSE-streamed Gemini** “AI Artist” chat. Users import a reference image, probe a dedicated **ML service** for analysis, then refine geometry and colour locally with cm-grid overlays (including a shared **canvas calibration** layer on several screens), paper-size mapping, trace mode, colour/shadow tools, and progression tracking.
+**ArtGrid** is a full-stack **Android** application for artists and learners who work from reference photos. In plain terms it acts like a **digital proportional divider**: you mark structure on the reference (often with **ML-assisted** landmarks or boxes), and the client turns those **pixel spans** into **centimetre-aligned** overlays for a chosen **physical paper size**. Technically it combines **on-device C++ image math** (JNI) with **cloud ML inference** (face landmarks, unified human + anime-style face fusion, object detection, U²-Net segmentation) and an **SSE-streamed Gemini** “AI Artist” chat.
 
 The backend is split into three **microservices** (auth, ML, AI proxy), each independently deployable (`docker compose` locally; production patterns below).
 
-**Production topology (as documented in-repo):** **Google OAuth** and **GCP** wiring (OAuth consent screen, Android + Web client IDs, **`artgrid-auth-service`** and **`artgrid-ai-proxy`** on **Cloud Run** in project **`artgrid-47`**, region **`europe-west1`**, with **Cloud SQL PostgreSQL** for real auth when `DEMO_MODE=false`) are described in **`backend/READMEv5.md`** (and related **`READMEv3.md`** / **`READMEv4.md`**). **`artgrid-ml-service`** is deployed for **GPU inference on RunPod** (`https://[POD_ID]-8001.proxy.runpod.net`-style HTTPS, single container, **`JWT_SECRET`** matching auth). See **`backend/READMEv2.md`** for the full RunPod checklist (image push, port **8001**, model volume, cost controls). Optional **ML on Cloud Run** (including GPU L4) is covered in **`READMEv5.md` §1**. The Android app points **`AUTH_BASE_URL`**, **`ML_BASE_URL`**, **`PROXY_BASE_URL`** at these HTTPS endpoints via **`demo.properties`** / **`BuildConfig`**.
+**Production topology (typical in-repo setup):** **Google OAuth** and **GCP** wiring use the Google Cloud console (OAuth consent screen, Android + Web client IDs). Example deployment has **`artgrid-auth-service`** and **`artgrid-ai-proxy`** on **Cloud Run** (e.g. project **`artgrid-47`**, region **`europe-west1`**) with **Cloud SQL PostgreSQL** when auth runs with **`DEMO_MODE=false`**. Details for environment variables, networking, and rolling updates are covered in the **Build & deployment** sections below and in each service’s `.env.example` plus root **`Backend/docker-compose.yml`**. **`artgrid-ml-service`** is often hosted for **GPU inference on RunPod** (`https://[POD_ID]-8001.proxy.runpod.net`-style HTTPS, single container, **`JWT_SECRET`** matching auth): push the image, expose **8001**, mount or copy **`models/`** into the container, and watch cold-start time and spend. **ML on Cloud Run** (including GPU classes such as NVIDIA L4) is an alternative: mount model weights (e.g. from Cloud Storage) at **`/app/models`** and confirm **`/health`** reports `gpu_available` when CUDA and ONNX Runtime align. The Android app points **`AUTH_BASE_URL`**, **`ML_BASE_URL`**, **`PROXY_BASE_URL`** at these HTTPS endpoints via **`demo.properties`** / **`BuildConfig`**.
 
 ---
 
@@ -33,7 +33,7 @@ Android (Compose)
 
 ### On-device vs server split
 
-- **Server ML**: dlib HOG + 68-point landmarks (legacy single-face `/infer/face`), YOLOv8n objects, U²-Netp segmentation, **F-34** unified human + anime-face fusion (`/infer/face_unified`), optional anime landmarks when `return_landmarks=true` and the model is loaded.
+- **Server ML**: dlib HOG + 68-point landmarks (legacy single-face `/infer/face`), YOLOv8n objects, U²-Netp segmentation, **unified** human + anime-face fusion on `/infer/face_unified` (parallel human geometry and animated-face detection with domain fusion inside `InferService`), optional anime landmarks when `return_landmarks=true` and the optional landmark model is loaded.
 - **On-device (`libartgrid-native`)**: Oklab-domain edge pipeline, perspective correction, greyscale, tonal heatmap, white balance, invert, Kuwahara, colour sampling (Chamfer aperture), **Kubelka-Munk** paint-mix solver, Oklab median-cut palette quantisation, measurement/grid helpers. Heavy work runs on `Dispatchers.Default`; bitmap long-side cap (e.g. 4000px) in native code.
 
 ---
@@ -72,8 +72,8 @@ Android (Compose)
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | `gpu_available`, `models_loaded`, `demo_mode`, `build` |
-| POST | `/infer/face` | Single human face, 68 landmarks (legacy F-10) |
-| POST | `/infer/face_unified` | F-34: human + animated faces, optional anime landmarks |
+| POST | `/infer/face` | Single human face, 68 landmarks (legacy endpoint) |
+| POST | `/infer/face_unified` | Unified human + animated faces; optional anime landmarks |
 | POST | `/infer/objects` | YOLOv8n object boxes + labels |
 | POST | `/infer/segment` | U²-Netp subject/background mask (PNG alpha) |
 
@@ -141,8 +141,8 @@ Partial unique index on `google_sub` where `deleted_at IS NULL` (`idx_users_goog
 
 | Table | Role |
 |-------|------|
-| **reference_assets** | Saved references: local path, label, note, SHA-256, tag, timestamps (F-31). |
-| **progressions** | Comparator projects: title, description, timestamps (F-32). |
+| **reference_assets** | Saved references: local path, label, note, SHA-256, tag, timestamps (reference history library). |
+| **progressions** | Comparator projects: title, description, timestamps (multi-stage progression feature). |
 | **progression_stages** | Ordered stages per progression: label, image path, SHA-256, notes, optional **grid overlay** + **grid alpha** for comparator UI. |
 
 Database version **1** (`ArtGridDatabase.kt`); `exportSchema = false`.
@@ -180,47 +180,49 @@ Large ML payloads are not URL-encoded. **`NavResultHolder`** (in-memory `Concurr
 
 | Route | Screen | Notes |
 |-------|--------|-------|
-| `auth/sign-in` | `SignInScreen` | Google sign-in |
-| `home` | `HomeScreen` | Hub: import image, ML cards, on-device tools |
-| `chat` | `ChatScreen` | AI Artist SSE chat |
-| `playground?uri={uri}` | `AnalysisResultScreen` | F-07…19 playground; legacy alias `results?uri={uri}` |
-| `face-studio?uri=&key=` | `FaceStudioScreen` | F-10; needs `NavResultHolder` face |
-| `face-detail?uri=&bbox=` | `FaceDetailScreen` | F-10 detail |
-| `unified-face?uri=` | `UnifiedFaceStudioScreen` | F-34 |
-| `object-locator?uri=&key=` | `ObjectLocatorScreen` | F-11 |
-| `object-detail?uri=&bbox=&label=` | `ObjectDetailScreen` | F-11 |
-| `background-remover?uri=&key=` | `BackgroundRemoverScreen` | F-22 |
-| `color-palette?uri=` | `ColorPaletteScreen` | F-12…14, artist swatches, shadow overlay |
-| `crop?uri=` | `CropScreen` | F-28 |
-| `paper-mapping?uri=` | `PaperMappingScreen` | F-29 |
-| `trace?uri=` / `trace` | `TraceModeScreen` | F-27 with optional reference URI or none |
-| `reference-history` | `ReferenceHistoryScreen` | F-31 |
-| `progression-list` / `progression-detail?id=` | Progression screens | F-32 |
+| `auth/sign-in` | `SignInScreen` | Google Sign-In entry; unauthenticated users land here until tokens exist; errors surface inline with retry toward Home after success. |
+| `home` | `HomeScreen` | Central hub: import reference image, probe ML **`/health`**, launch server ML cards (face, unified face, objects, segment), open on-device playgrounds, crop, palette, progression, trace, chat, and history shortcuts. ML rows respect `MlHealth.isAvailable`. |
+| `chat` | `ChatScreen` | **AI Artist** chat: streamed tokens over **SSE** via the AI proxy (`X-Device-Token`), optional image attachment in the request payload, session continuity via `sessionId`. |
+| `playground?uri={uri}` | `AnalysisResultScreen` | Full **image playground**: native pipelines (edges, perspective, tonal filters), shared **canvas calibration** (cm grid / ruler), and measurement overlays. Legacy deep link alias: `results?uri={uri}`. |
+| `face-studio?uri=&key=` | `FaceStudioScreen` | **Legacy single-face** flow after `/infer/face`: expects a `FaceResult` stored under `key` in **`NavResultHolder`** plus the image URI; shows landmarks and calibration-aware spans. |
+| `face-detail?uri=&bbox=` | `FaceDetailScreen` | Zoomed face region with bounding context from the legacy face pipeline. |
+| `unified-face?uri=` | `UnifiedFaceStudioScreen` | **Unified face** analysis: human dlib path plus animated-face YOLO fusion; multiple detections; user can pick a face; optional anime landmark overlay when the backend returns it. |
+| `object-locator?uri=&key=` | `ObjectLocatorScreen` | YOLO-driven boxes and labels; **`NavResultHolder`** holds `ObjectInferResult` by `key`. |
+| `object-detail?uri=&bbox=&label=` | `ObjectDetailScreen` | Single-object focus with label and crop region for measurement or study. |
+| `background-remover?uri=&key=` | `BackgroundRemoverScreen` | U²-Net mask preview and composite; **`NavResultHolder`** holds `SegmentResult` by `key`. |
+| `color-palette?uri=` | `ColorPaletteScreen` | Colour sampling, Oklab/HSL/Kelvin controls, Kubelka–Munk mix, auto palette, artist swatch groups, **shadow construction** overlay. |
+| `crop?uri=` | `CropScreen` | In-app crop with confirm callback; URI updated for downstream routes. |
+| `paper-mapping?uri=` | `PaperMappingScreen` | Map reference proportions to **physical paper sizes** (e.g. A4/A3) with scaler and grid affordances. |
+| `trace?uri=` / `trace` | `TraceModeScreen` | **Trace mode** with CameraX underlay; optional reference URI for alignment or standalone practice route. |
+| `reference-history` | `ReferenceHistoryScreen` | Room-backed library: saved references, tags, notes, reopen into other tools. |
+| `progression-list` / `progression-detail?id=` | Progression list & detail | Multi-stage **progression comparator**: ordered stages, optional per-stage grid overlay and alpha for before/after study. |
 
 `ProtectedRoute` gates authenticated destinations; `AuthInterceptor.logoutEvent` triggers sign-out and navigation to `auth/sign-in`.
 
-**Home ML gating**: `HomeViewModel.probeHealth()` sets `MlHealth`; `HomeScreen` treats `mlHealth?.isAvailable == true` as “server OK” for ML action rows. **Unified Face** is additionally presented as ML-dependent (same health gate as other ML entry points in the current UI).
+**Home ML gating**: `HomeViewModel.probeHealth()` sets `MlHealth`; `HomeScreen` treats `mlHealth?.isAvailable == true` as “server OK” for ML action rows. **Unified face** uses the same health gate as the other ML entry points in the current UI.
 
 ---
 
 ## ML Pipelines (server)
 
-### F-10 — Human face (legacy)
+**Backend model storage:** weights and predictors live on the ML host under **`Backend/models/`** (mounted read-only as **`/app/models`** in Docker). The Android APK does **not** ship these binaries; inference always happens on **`artgrid-ml-service`**.
+
+### Human face (legacy `/infer/face`)
 
 - dlib HOG + 68-point regressor; single-face legacy endpoint.
 - Used from Home → Face Studio when inferring via `/infer/face`.
 
-### F-34 — Unified face
+### Unified face (`/infer/face_unified`)
 
-- Parallel **human** (dlib) and **animated** (YOLOv8 anime-face ONNX) with **domain fusion** in `InferService`.
+- Parallel **human** (dlib) and **animated** (YOLOv8 anime-face ONNX) detection with **domain fusion** inside `InferService`.
 - Form fields: `max_long_edge`, `conf`, `iou`, `return_landmarks`.
-- Returns multiple faces; client supports selection in `UnifiedFaceStudioScreen`.
+- Returns multiple faces; the client lets the user choose one in `UnifiedFaceStudioScreen`; optional anime landmark tensor when configured.
 
-### F-11 — Objects
+### Objects (`/infer/objects`)
 
 - YOLOv8n ONNX at constrained long edge; normalised boxes + labels for Object Locator UI.
 
-### F-22 — Segmentation
+### Segmentation (`/infer/segment`)
 
 - U²-Netp → PNG alpha mask bytes; Background Remover screen composites preview.
 
@@ -237,12 +239,12 @@ Large ML payloads are not URL-encoded. **`NavResultHolder`** (in-memory `Concurr
 | Source module | Role |
 |----------------|------|
 | `artgrid_math.cpp` | Oklab/sRGB/XYZ, shared math |
-| `edge_pipeline.cpp` | **F-07** Oklab-domain structural edges |
-| `perspective.cpp` | **F-09** corner detection + homography warp |
-| `color_sampler.cpp` | **F-12** Chamfer aperture sampling |
-| `km_solver.cpp` | **F-13** Kubelka-Munk 31-band solver |
-| `palette_quant.cpp` | **F-14** Oklab median-cut + greedy merge |
-| `image_filters.cpp` | **F-08, F-16–F-19** (greyscale, heatmap, WB, invert, Kuwahara) |
+| `edge_pipeline.cpp` | Oklab-domain structural edges |
+| `perspective.cpp` | Corner detection + homography warp |
+| `color_sampler.cpp` | Chamfer aperture colour sampling |
+| `km_solver.cpp` | Kubelka–Munk 31-band paint-mix solver |
+| `palette_quant.cpp` | Oklab median-cut palette + greedy merge |
+| `image_filters.cpp` | Greyscale, tonal heatmap, white balance, invert, Kuwahara, related tonal filters |
 | `jni_bridge.cpp` | JNI bindings only |
 
 **Kotlin exposure** (`ArtGridNative.kt`): `extractEdges`, `correctPerspective`, `toGreyscale`, `tonalHeatmap`, `whiteBalance`, `invertColors`, `kuwaharaSimplify`, `sampleColor`, `solvePaintMix`, `extractPalette` — all `suspend` on `Dispatchers.Default` with `runCatching`.
@@ -287,7 +289,7 @@ Large ML payloads are not URL-encoded. **`NavResultHolder`** (in-memory `Concurr
 ## Project Structure (high level)
 
 ```
-ArtGrid/
+App/
 ├── app/src/main/
 │   ├── java/com/artgrid/mobile/
 │   │   ├── ArtGridApp.kt, MainActivity.kt
@@ -303,15 +305,13 @@ ArtGrid/
 ├── gradle/libs.versions.toml  # version catalog
 └── demo.properties            # optional local overrides (not in VCS)
 
-backend/
+Backend/
 ├── artgrid-auth-service/      # Go
-├── artgrid-ml-service/        # Python FastAPI
+├── artgrid-ml-service/        # Python FastAPI (loads ONNX/dlib weights from mounted volume)
 ├── artgrid-ai-proxy/          # Go
-├── docker-compose.yml         # ports 8080 / 8001 / 8082; profiles: postgres, gpu
-├── download_models.sh / .ps1
-├── README.md              # local Compose, GPU build
-├── READMEv2.md            # RunPod GPU ML (production ML host)
-└── READMEv5.md            # GCP Cloud Run, OAuth console, Cloud SQL, optional ML GPU
+├── models/                    # ML weights
+├── docker-compose.yml        # ports 8080 / 8001 / 8082; profiles: postgres, gpu
+└── …
 ```
 
 ---
@@ -332,7 +332,7 @@ backend/
 
 ### Android
 
-- `ArtGrid/demo.properties` and `local.properties` for URLs, `DEMO_MODE`, and secrets (not committed). Production: HTTPS base URLs for Cloud Run / RunPod (trailing slash consistent with `NetworkModule`); **`PROXY_SHARED_SECRET`** must match **`artgrid-ai-proxy`**. See **`backend/READMEv5.md` §4**.
+- **`App/demo.properties`** and **`App/local.properties`** for URLs, `DEMO_MODE`, and secrets (not committed). Production: HTTPS base URLs for Cloud Run / RunPod (trailing slash consistent with `NetworkModule`); **`PROXY_SHARED_SECRET`** must match **`artgrid-ai-proxy`**. Detailed env wiring is summarized under **Environment variables** and each service `.env.example` above.
 
 ---
 
@@ -340,11 +340,8 @@ backend/
 
 ### Backend (local)
 
-Per `backend/README.md`:
-
 ```bash
-cd backend
-# download models: bash download_models.sh  or  .\download_models.ps1
+cd Backend
 cp artgrid-ml-service/.env.example .env   # set JWT_SECRET (32+ chars)
 docker compose up --build
 ```
@@ -355,7 +352,7 @@ docker compose up --build
 ### Android
 
 ```bash
-cd ArtGrid
+cd App
 # optional: demo.properties, local.properties (artgrid.dev.host=10.0.2.2 for emulator)
 ./gradlew :app:assembleDebug
 ```
@@ -376,12 +373,12 @@ Use emulator **10.0.2.2** to reach the host loopback.
 
 ### Production — Google Cloud (OAuth, auth, AI proxy; optional ML)
 
-- **Console**: Google **Cloud Run** for **`artgrid-auth-service`** (8080) and **`artgrid-ai-proxy`** (8082); **Cloud SQL** for PostgreSQL when auth runs with **`DEMO_MODE=false`**; **APIs & Services → OAuth consent screen** and **Credentials** (Android + Web OAuth client IDs, SHA-1 for signing; **`GOOGLE_CLIENT_ID`** on the auth service aligned with `id_token` verification). Project/region examples and env tables: **`backend/READMEv5.md`**.
-- **Optional**: **ML on Cloud Run** with GPU (e.g. NVIDIA L4), models on **Cloud Storage** mount at `/app/models`; **`/health`** should show `gpu_available` when CUDA/ONNXRuntime match. **`READMEv5.md` §1**.
+- **Console**: Google **Cloud Run** for **`artgrid-auth-service`** (8080) and **`artgrid-ai-proxy`** (8082); **Cloud SQL** for PostgreSQL when auth runs with **`DEMO_MODE=false`**; **APIs & Services → OAuth consent screen** and **Credentials** (Android + Web OAuth client IDs, SHA-1 for signing; **`GOOGLE_CLIENT_ID`** on the auth service aligned with `id_token` verification). Align **region**, **VPC connector**, and **service account IAM** with your org policies.
+- **Optional**: **ML on Cloud Run** with GPU (e.g. NVIDIA L4), models on **Cloud Storage** mount at **`/app/models`**; **`/health`** should show `gpu_available` when CUDA and ONNX Runtime match your image.
 
 ### Production — ML on RunPod (GPU Pod)
 
-- **`artgrid-ml-service` only** as a **single Docker image** (no Compose on the Pod); expose **HTTP 8001**; public URL often `https://[POD_ID]-8001.proxy.runpod.net`; copy **`models/`** into the container path (e.g. `/app/models`); **`JWT_SECRET`** identical to **`artgrid-auth-service`**. Detailed phases, pricing caveats, troubleshooting: **`backend/READMEv2.md`**.
+- **`artgrid-ml-service` only** as a **single Docker image** (no Compose on the Pod); expose **HTTP 8001**; public URL often `https://[POD_ID]-8001.proxy.runpod.net`; bundle or volume-mount **`Backend/models`** into **`/app/models`**; **`JWT_SECRET`** identical to **`artgrid-auth-service`**. Budget for GPU idle cost, proxy **~100 s** timeout behaviour on cold starts (per RunPod networking docs), and first-request model warm-up latency.
 
 ### Cross-cutting
 
@@ -440,15 +437,15 @@ ChatViewModel → ChatRepository.streamChat
 
 ---
 
-## Context for LLM Understanding
+## Context for Understanding
 
 ### Distinctive aspects
 
 1. **Split microservices** with different auth models (JWT vs HMAC device token).
-2. **F-34 unified face** combining classical geometry (dlib) and modern detector (YOLO anime).
+2. **Unified face** pipeline combining classical geometry (dlib) and animated-face detection (YOLO ONNX) inside one inference pathway.
 3. **Heavy on-device C++** for artist-specific colour and geometry versus filter-only stacks.
 4. **SSE chat** through a dedicated proxy (not calling Gemini from Android directly).
-5. **Operational split**: **Google Cloud Run** (+ Console OAuth / Cloud SQL) for stateless Go services versus **RunPod** (or Compose GPU locally) for the **GPU-bound** Python ML container—documented separately because ML cannot use Compose on a Pod (**`READMEv2.md`**).
+5. **Operational split**: **Google Cloud Run** (OAuth / Cloud SQL) for stateless Go services versus **RunPod** or local **Compose `--profile gpu`** for the **GPU-bound** Python ML container—pods run a single service image without the full Compose stack.
 
 ### Common user flows
 
@@ -459,12 +456,17 @@ ChatViewModel → ChatRepository.streamChat
 
 ---
 
-## Additional Resources (in-repo)
+## Documentation assets
 
-- **`backend/READMEv2.md`** — RunPod ML Pod: image, env, port 8001, public URL, JWT alignment, troubleshooting.
-- **`backend/READMEv5.md`** — GCP `artgrid-47`: OAuth (consent + credentials), Cloud Run auth/proxy/optional ML, Cloud SQL, `demo.properties`.
-- **`Prompts/`** — original feature intent and backend/Android prompt specs (see `Idea.md`, `PROMPT-3-Android.md`).
-- **`ArtGrid_Report/`** — academic report: requirements, unified-face fusion, GPU deployment (GCP + RunPod).
+Screenshots and architecture diagrams live under **`App/images/`**. **Model evaluation** plots committed for reports or coursework include (see root **`README.md`** for clickable links):
+
+- **`confusion_matrix.png`** — confusion matrix  
+- **`PR_curve.png`** — precision–recall curve  
+- **`P_curve.png`** — precision vs threshold / confidence  
+- **`R_curve.png`** — recall vs threshold / confidence  
+- **`F1_curve.png`** — F1 vs threshold  
+
+---
 
 ## Additional Resources (external)
 
@@ -478,4 +480,4 @@ ChatViewModel → ChatRepository.streamChat
 
 **Last Updated**: April 29, 2026  
 **Version**: Android **0.1.0** (`versionName` in `app/build.gradle.kts`, `versionCode` 1)  
-**Repository**: `ArtGrid/` Android app + `backend/` microservices
+**Repository**: `App/` Android app + `Backend/` microservices

@@ -1,6 +1,6 @@
 /**
  * ProgressionDetailScreen.kt
- * Responsibility : F-32 — side-by-side stage comparator with grid overlay toggle,
+ * Responsibility : Side-by-side stage comparator with grid overlay toggle,
  *                  stage management (add/delete), and color-picker integration.
  * Pattern used   : Stateless composable + shared ProgressionViewModel
  * Dependencies   : ProgressionViewModel, Coil

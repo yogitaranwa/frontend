@@ -1,6 +1,6 @@
 /**
  * ReferenceRepository.kt
- * Responsibility : Interface for reference history operations (F-31).
+ * Responsibility : Interface for reference history operations.
  * Pattern used   : Repository interface
  * Dependencies   : none (interface)
  */

@@ -1,11 +1,11 @@
 /**
- * image_filters.cpp  ·  F-08, F-16, F-17, F-18, F-19
+ * image_filters.cpp — tonal and colour-space image filters
  *
- * F-08  Greyscale via Oklab L-channel luminance  (not NTSC luma)
- * F-16  Tonal value heatmap (Oklab L → viridis-style colormap)
- * F-17  White balance: 98th-percentile auto-white-point + per-channel levels
- * F-18  Gamma-corrected linear inversion (not naive 255-x)
- * F-19  Edge-preserving Kuwahara filter (4-quadrant mean/variance)
+ *   Greyscale via Oklab L-channel luminance  (not NTSC luma)
+ *   Tonal value heatmap (Oklab L → viridis-style colormap)
+ *   White balance: 98th-percentile auto-white-point + per-channel levels
+ *   Gamma-corrected linear inversion (not naive 255-x)
+ *   Edge-preserving Kuwahara filter (4-quadrant mean/variance)
  */
 #include "artgrid_math.h"
 #include <vector>
@@ -13,7 +13,7 @@
 #include <cmath>
 #include <array>
 
-// ── F-08: Greyscale via Oklab L-channel ──────────────────────────────────────
+// ── Greyscale via Oklab L-channel ────────────────────────────────────────────
 
 void greyscale_oklab(const uint32_t* src, int w, int h, uint32_t* dst) noexcept {
     for (int i = 0; i < w * h; ++i) {
@@ -26,7 +26,7 @@ void greyscale_oklab(const uint32_t* src, int w, int h, uint32_t* dst) noexcept 
     }
 }
 
-// ── F-16: Tonal heatmap ───────────────────────────────────────────────────────
+// ── Tonal heatmap ───────────────────────────────────────────────────────────
 //
 // Maps Oklab L (perceived lightness [0,1]) to a perceptual heatmap.
 // Colormap: deep shadows → dark navy, midtones → teal, highlights → amber/white.
@@ -66,7 +66,7 @@ void tonal_heatmap(const uint32_t* src, int w, int h, uint32_t* dst) noexcept {
     }
 }
 
-// ── F-17: White balance + per-channel levels ──────────────────────────────────
+// ── White balance + per-channel levels ──────────────────────────────────────
 //
 // Strategy: compute 98th-percentile value for each linear-light channel,
 // scale so that value → 1.0 (white point normalisation).
@@ -125,7 +125,7 @@ void white_balance(
     }
 }
 
-// ── F-18: Gamma-corrected linear inversion ────────────────────────────────────
+// ── Gamma-corrected linear inversion ────────────────────────────────────────
 //
 // sRGB decode → linear[0,1] → invert (1-C) → sRGB encode.
 // This avoids the muddy mid-tones of naive 255-x inversion.
@@ -144,7 +144,7 @@ void invert_linear(const uint32_t* src, int w, int h, uint32_t* dst) noexcept {
     }
 }
 
-// ── F-19: Kuwahara edge-preserving filter ─────────────────────────────────────
+// ── Kuwahara edge-preserving filter ─────────────────────────────────────────
 //
 // For each pixel, computes mean + variance in each of 4 overlapping quadrant
 // neighbourhoods, assigns the mean of the quadrant with the lowest variance.

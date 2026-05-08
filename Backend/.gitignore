@@ -13,8 +13,16 @@ artgrid-ml-service/**/__pycache__/
 artgrid-ml-service/*.pyc
 artgrid-ml-service/.venv/
 
-# Models (large binary files — download separately)
-models/
+# Model weights live under models/ — commit with Git LFS (see repo root `.gitattributes`).
+# Ignore incomplete downloads and OS junk (actual weights like .onnx / .dat are tracked):
+models/*.part
+models/**/*.part
+models/*.tmp
+models/**/*.tmp
+models/.DS_Store
+models/**/.DS_Store
+models/Thumbs.db
+models/**/Thumbs.db
 
 # Docker volumes
 pg_data/

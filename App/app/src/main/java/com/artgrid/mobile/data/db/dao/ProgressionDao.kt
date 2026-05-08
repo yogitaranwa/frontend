@@ -1,6 +1,6 @@
 /**
  * ProgressionDao.kt
- * Responsibility : Room DAO for progressions + progression_stages tables (F-32).
+ * Responsibility : Room DAO for progressions + progression_stages tables.
  * Pattern used   : Room DAO
  * Dependencies   : Room, Coroutines Flow
  */

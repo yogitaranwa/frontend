@@ -1,6 +1,6 @@
 /**
  * ReferenceHistoryViewModel.kt
- * Responsibility : F-31 reference history — load/save/delete saved reference images
+ * Responsibility : Reference history — load/save/delete saved reference images
  *                  from local Room database.
  * Pattern used   : HiltViewModel + StateFlow
  * Dependencies   : ReferenceRepository

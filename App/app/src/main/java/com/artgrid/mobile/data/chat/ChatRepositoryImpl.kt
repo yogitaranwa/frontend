@@ -39,7 +39,7 @@ class ChatRepositoryImpl @Inject constructor(
 ) : ChatRepository {
 
     /**
-     * F-24 · Artist AI Chatbot SSE stream.
+     * Artist AI chatbot SSE stream.
      *
      * Why raw OkHttp instead of Retrofit here:
      * Retrofit's converter factory buffers the response body before returning, which

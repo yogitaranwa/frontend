@@ -1,7 +1,7 @@
 /**
  * ArtGridDatabase.kt
  * Responsibility : Room database — single entry point for all local SQLite tables.
- *                  Covers F-31 (reference_assets) and F-32 (progressions, progression_stages).
+ *                  Tables: reference_assets, progressions, progression_stages.
  * Pattern used   : Room singleton database
  * Dependencies   : Room, Hilt (provided via DatabaseModule)
  */

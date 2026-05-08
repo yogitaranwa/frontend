@@ -1,6 +1,6 @@
 /**
  * FaceStudioScreen.kt
- * Responsibility : F-10 Face Analysis — shows original image with 68-point landmark overlay,
+ * Responsibility : Legacy face analysis — original image with 68-point landmark overlay,
  *                  grid in real cm, EdgeMode tri-state (Off/Dimmed/EdgesOnly), sensitivity slider,
  *                  grid step selector, measurement panel (distances in cm),
  *                  canvas size selection (once per import), and navigation to isolated face detail.

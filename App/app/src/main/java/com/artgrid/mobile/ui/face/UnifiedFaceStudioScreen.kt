@@ -1,6 +1,6 @@
 /**
  * UnifiedFaceStudioScreen.kt
- * Responsibility : F-34 unified human + animated face detection screen.
+ * Responsibility : Unified human + animated face detection screen.
  *                  Shows multi-face detection results with domain labels (human/animated),
  *                  tap-to-select face UX, bbox overlays, landmark counts, and telemetry.
  * Pattern used   : Stateless composable + HiltViewModel

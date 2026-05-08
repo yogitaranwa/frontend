@@ -1,7 +1,7 @@
 /**
  * NativePipelineViewModel.kt
- * Responsibility : Coordinates all on-device C++17 math pipelines (F-07 through F-19)
- *                  by bridging ArtGridNative suspend functions to observable Compose state.
+ * Responsibility : Coordinates on-device C++17 image pipelines (edges, perspective, tonal filters,
+ *                  colour sampler, K–M mix, palette) by bridging ArtGridNative to Compose state.
  *
  * Design principles:
  *   - Every heavy pipeline call dispatches to Dispatchers.Default (inside ArtGridNative).
@@ -12,8 +12,7 @@
  *
  * Crash-prevention strategy:
  *   - All native calls are wrapped in Result<T> (see ArtGridNative.kt).
- *   - If B
- *itmap is null (picker returned nothing), loadBitmap() returns a NativePipelineState.Error.
+ *   - If Bitmap is null (picker returned nothing), loadBitmap() returns a NativePipelineState.Error.
  *   - If the native call returns Result.failure, state is set to NativePipelineState.Error
  *     with the exception message — never crashes the app.
  *   - The Bitmap passed to JNI is always copied to ARGB_8888 by ArtGridNative.toArgb8888()
@@ -56,34 +55,34 @@ data class NativePipelineUiState(
     /** The source bitmap currently loaded (null = no image selected yet) */
     val sourceBitmap: Bitmap? = null,
 
-    // F-07 Edge extraction
+    // Edge extraction
     val edgeState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-09 Perspective correction
+    // Perspective correction
     val perspectiveState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-08 Greyscale
+    // Greyscale
     val greyscaleState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-16 Tonal heatmap
+    // Tonal heatmap
     val tonalState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-17 White balance
+    // White balance
     val whiteBalanceState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-18 Invert
+    // Invert
     val invertState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-19 Kuwahara
+    // Kuwahara
     val kuwaharaState: NativePipelineState<Bitmap> = NativePipelineState.Idle,
 
-    // F-12 Colour sampler
+    // Colour sampler
     val colorSampleState: NativePipelineState<ColorSampleResult> = NativePipelineState.Idle,
 
-    // F-13 K-M paint mix
+    // K–M paint mix
     val kmState: NativePipelineState<KmResult> = NativePipelineState.Idle,
 
-    // F-14 Palette
+    // Palette extraction
     val paletteState: NativePipelineState<List<Int>> = NativePipelineState.Idle,
 
     /** True while any pipeline is running — used to disable buttons. */
@@ -144,7 +143,7 @@ class NativePipelineViewModel @Inject constructor(
         }
     }
 
-    // ── F-07 · Edge extraction ────────────────────────────────────────────────
+    // ── Edge extraction ─────────────────────────────────────────────────────
 
     /**
      * @param sensitivity λ ∈ [0.5, 3.0]
@@ -157,7 +156,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.extractEdges(bmp, sensitivity, overlay)
         }
 
-    // ── F-09 · Perspective correction ─────────────────────────────────────────
+    // ── Perspective correction ──────────────────────────────────────────────
 
     fun runPerspectiveCorrect() =
         launchPipeline(
@@ -166,7 +165,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.correctPerspective(bmp)
         }
 
-    // ── F-08 · Greyscale ──────────────────────────────────────────────────────
+    // ── Greyscale ────────────────────────────────────────────────────────────
 
     fun runGreyscale() =
         launchPipeline(
@@ -175,7 +174,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.toGreyscale(bmp)
         }
 
-    // ── F-16 · Tonal heatmap ──────────────────────────────────────────────────
+    // ── Tonal heatmap ───────────────────────────────────────────────────────
 
     fun runTonalHeatmap() =
         launchPipeline(
@@ -184,7 +183,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.tonalHeatmap(bmp)
         }
 
-    // ── F-17 · White balance ──────────────────────────────────────────────────
+    // ── White balance ────────────────────────────────────────────────────────
 
     fun runWhiteBalance(
         usePercentile: Boolean = true,
@@ -195,7 +194,7 @@ class NativePipelineViewModel @Inject constructor(
         ArtGridNative.whiteBalance(bmp, usePercentile, greyR, greyG, greyB)
     }
 
-    // ── F-18 · Linear inversion ───────────────────────────────────────────────
+    // ── Linear inversion ────────────────────────────────────────────────────
 
     fun runInvert() =
         launchPipeline(
@@ -204,7 +203,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.invertColors(bmp)
         }
 
-    // ── F-19 · Kuwahara filter ────────────────────────────────────────────────
+    // ── Kuwahara filter ─────────────────────────────────────────────────────
 
     fun runKuwahara(radius: Int = 3) =
         launchPipeline(
@@ -213,7 +212,7 @@ class NativePipelineViewModel @Inject constructor(
             ArtGridNative.kuwaharaSimplify(bmp, radius)
         }
 
-    // ── F-12 · Colour sampler ─────────────────────────────────────────────────
+    // ── Colour sampler ───────────────────────────────────────────────────────
 
     /**
      * Sample a colour from the current [sourceBitmap].
@@ -252,7 +251,7 @@ class NativePipelineViewModel @Inject constructor(
         }
     }
 
-    // ── F-13 · K-M paint mix ─────────────────────────────────────────────────
+    // ── K–M paint mix ────────────────────────────────────────────────────────
     // medium: 0 = watercolour, 1 = acrylic
 
     fun runKmSolve(r: Int, g: Int, b: Int, medium: Int = 0) {
@@ -273,7 +272,7 @@ class NativePipelineViewModel @Inject constructor(
         }
     }
 
-    // ── F-14 · Palette extraction ──────────────────────────────────────────────
+    // ── Palette extraction ───────────────────────────────────────────────────
 
     fun runPaletteExtraction(nColors: Int = 6) {
         val bmp = _uiState.value.sourceBitmap ?: return

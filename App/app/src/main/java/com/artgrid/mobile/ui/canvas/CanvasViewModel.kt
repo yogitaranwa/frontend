@@ -1,7 +1,7 @@
 /**
  * CanvasViewModel.kt
  * Responsibility : Shared canvas calibration state — canvas size selection and
- *                  cm_per_px computation. Based on F-02 + F-03 spec.
+ *                  cm_per_px computation (canvas calibration and grid overlay).
  *
  * New in this version:
  *  - Expanded preset library: ISO A/B, US Art sizes, Watercolour Imperial, Office

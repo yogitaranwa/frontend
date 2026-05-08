@@ -23,7 +23,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * Parsed result from the K-M solver (F-13).
+ * Parsed result from the K–M solver.
  */
 data class KmRecipeEntry(val name: String, val weight: Float)
 data class KmResult(
@@ -32,7 +32,7 @@ data class KmResult(
 )
 
 /**
- * Parsed result from the pixel colour sampler (F-12).
+ * Parsed result from the pixel colour sampler.
  */
 data class ColorSampleResult(
     val r: Float, val g: Float, val b: Float,         // sRGB normalised [0,1]
@@ -82,7 +82,7 @@ object ArtGridNative {
     // ── Public suspend API ────────────────────────────────────────────────────
 
     /**
-     * F-07 · Structural Edge Extraction
+     * Structural edge extraction
      * @param sensitivity λ ∈ [0.5, 3.0] — higher = more edges
      * @param overlay     true: white edges overlaid on source; false: white-on-black
      */
@@ -99,7 +99,7 @@ object ArtGridNative {
     }
 
     /**
-     * F-09 · Perspective Correction
+     * Perspective correction
      * Returns source bitmap unchanged if corner detection fails.
      */
     suspend fun correctPerspective(src: Bitmap): Result<Bitmap> =
@@ -111,7 +111,7 @@ object ArtGridNative {
         }
 
     /**
-     * F-08 · Greyscale via Oklab L-channel
+     * Greyscale via Oklab L-channel
      */
     suspend fun toGreyscale(src: Bitmap): Result<Bitmap> =
         withContext(Dispatchers.Default) {
@@ -122,7 +122,7 @@ object ArtGridNative {
         }
 
     /**
-     * F-16 · Tonal Value Heatmap
+     * Tonal value heatmap
      */
     suspend fun tonalHeatmap(src: Bitmap): Result<Bitmap> =
         withContext(Dispatchers.Default) {
@@ -133,7 +133,7 @@ object ArtGridNative {
         }
 
     /**
-     * F-17 · White Balance
+     * White balance
      * @param usePercentile true: 98th-percentile auto mode; false: use greyPatch
      * @param greyPatch     sampled grey-patch pixel (sRGB 0-255), ignored if usePercentile=true
      */
@@ -149,7 +149,7 @@ object ArtGridNative {
     }
 
     /**
-     * F-18 · Gamma-Corrected Linear Inversion
+     * Gamma-corrected linear inversion
      */
     suspend fun invertColors(src: Bitmap): Result<Bitmap> =
         withContext(Dispatchers.Default) {
@@ -160,7 +160,7 @@ object ArtGridNative {
         }
 
     /**
-     * F-19 · Kuwahara Edge-Preserving Simplification
+     * Kuwahara edge-preserving simplification
      * @param radius neighbourhood radius, 1–8 (default 3)
      */
     suspend fun kuwaharaSimplify(src: Bitmap, radius: Int = 3): Result<Bitmap> =
@@ -172,7 +172,7 @@ object ArtGridNative {
         }
 
     /**
-     * F-12 · Pixel Colour Sampler (Chamfer-distance aperture)
+     * Pixel colour sampler (Chamfer-distance aperture)
      * @param cx, cy  aperture centre in bitmap pixels
      * @param radius  aperture radius in pixels (default 6)
      */
@@ -195,7 +195,7 @@ object ArtGridNative {
     }
 
     /**
-     * F-13 · Kubelka-Munk Paint Mix Suggestion
+     * Kubelka–Munk paint mix suggestion
      * @param r, g, b   target sRGB colour (0–255)
      * @param medium    0 = watercolour, 1 = acrylic
      */
@@ -211,7 +211,7 @@ object ArtGridNative {
     }
 
     /**
-     * F-14 · Dominant Palette Extraction
+     * Dominant palette extraction
      * @param nColors   number of palette entries, 2–12 (default 6)
      */
     suspend fun extractPalette(src: Bitmap, nColors: Int = 6): Result<List<Int>> =

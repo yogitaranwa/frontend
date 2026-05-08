@@ -25,7 +25,7 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     /**
-     * F-00 · Google Sign-In (dual-mode).
+     * Google sign-in (demo / production dual-mode).
      *
      * DEMO_MODE: [idToken] is an empty string; the server returns a mock JWT.
      * Deployed : [idToken] is the real Google ID token from the Google Sign-In SDK.
@@ -45,7 +45,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     /**
-     * F-00 · Silent token refresh.
+     * Silent access-token refresh.
      * The current JWT is already injected by AuthInterceptor — no extra header needed.
      */
     override suspend fun refresh(): ApiResult<AuthSession> = safeApiCall {

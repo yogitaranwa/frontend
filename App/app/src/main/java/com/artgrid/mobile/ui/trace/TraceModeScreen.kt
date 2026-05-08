@@ -1,6 +1,6 @@
 /**
  * TraceModeScreen.kt
- * Responsibility : F-27-MVP — live camera underlay with reference image overlay.
+ * Responsibility : Trace mode — live camera underlay with reference image overlay.
  *                  CameraX provides the live preview; reference image is drawn on top
  *                  at configurable opacity. Pinch/pan/rotate gestures adjust the overlay.
  *                  No ARCore — pure CameraX + Skia/Canvas compositing.

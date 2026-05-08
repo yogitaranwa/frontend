@@ -131,7 +131,7 @@ static jobject bitmap_process(JNIEnv* env, jobject src_bitmap, Fn fn) {
     }
 }
 
-// ── F-07: Edge extraction ─────────────────────────────────────────────────────
+// ── Edge extraction ─────────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_edgePipeline(
@@ -146,7 +146,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_edgePipeline(
         });
 }
 
-// ── F-09: Perspective correction ──────────────────────────────────────────────
+// ── Perspective correction ──────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_perspectiveCorrect(
@@ -160,7 +160,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_perspectiveCorrect(
         });
 }
 
-// ── F-08: Greyscale ───────────────────────────────────────────────────────────
+// ── Greyscale ───────────────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_greyscaleOklab(
@@ -173,7 +173,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_greyscaleOklab(
         });
 }
 
-// ── F-16: Tonal heatmap ───────────────────────────────────────────────────────
+// ── Tonal heatmap ───────────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_nativeTonalHeatmap(
@@ -186,7 +186,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_nativeTonalHeatmap(
         });
 }
 
-// ── F-17: White balance ───────────────────────────────────────────────────────
+// ── White balance ───────────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_nativeWhiteBalance(
@@ -204,7 +204,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_nativeWhiteBalance(
         });
 }
 
-// ── F-18: Linear inversion ────────────────────────────────────────────────────
+// ── Linear inversion ───────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_invertLinear(
@@ -217,7 +217,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_invertLinear(
         });
 }
 
-// ── F-19: Kuwahara filter ─────────────────────────────────────────────────────
+// ── Kuwahara filter ──────────────────────────────────────────────────────────
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_artgrid_mobile_nativebridge_ArtGridNative_kuwaharaFilter(
@@ -231,7 +231,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_kuwaharaFilter(
         });
 }
 
-// ── F-12: Colour sample ───────────────────────────────────────────────────────
+// ── Colour sample ────────────────────────────────────────────────────────────
 // Returns FloatArray: [r_norm, g_norm, b_norm, oklab_L, oklab_a, oklab_b,
 //                      hsl_h_norm, hsl_s, hsl_l, kelvin_norm, lightness_pct]
 
@@ -269,7 +269,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_nativeSampleColor(
     }
 }
 
-// ── F-13: K-M paint mixing ────────────────────────────────────────────────────
+// ── K–M paint mixing ───────────────────────────────────────────────────────
 // Returns String JSON: {"score":82.4,"recipe":[{"name":"Ultramarine Blue","weight":0.6},…]}
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -304,7 +304,7 @@ Java_com_artgrid_mobile_nativebridge_ArtGridNative_kmSolve(
     }
 }
 
-// ── F-14: Palette quantisation ────────────────────────────────────────────────
+// ── Palette quantisation ─────────────────────────────────────────────────────
 // Returns IntArray of ARGB-packed palette colours.
 
 extern "C" JNIEXPORT jintArray JNICALL

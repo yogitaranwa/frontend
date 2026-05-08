@@ -37,9 +37,9 @@ class ModelStore:
     landmark_predictor: dlib.shape_predictor | None = field(default=None)
     yolo_session: ort.InferenceSession | None = field(default=None)
     u2netp_session: ort.InferenceSession | None = field(default=None)
-    # F-34: YOLOv8 animeface ONNX (single-class: face)
+    # Unified human + anime face detection (YOLOv8 anime-face ONNX, single-class: face)
     yolo_animeface_session: ort.InferenceSession | None = field(default=None)
-    # F-34-LM: optional 28-point anime landmark model
+    # Optional 28-point anime landmark model
     anime_landmarks_28_session: ort.InferenceSession | None = field(default=None)
     gpu_available: bool = field(default=False)
 
@@ -110,7 +110,7 @@ def _load_dlib(settings: Settings) -> None:
 
 
 def _load_yolo(settings: Settings, providers: list[str]) -> None:
-    """YOLOv8n ONNX session for object detection (F-11)."""
+    """YOLOv8n ONNX session for object detection."""
     model_path = Path(settings.yolo_model_path)
     if not model_path.exists():
         log.warning("yolo.model_not_found", path=str(model_path))
@@ -126,7 +126,7 @@ def _load_yolo(settings: Settings, providers: list[str]) -> None:
 
 
 def _load_u2netp(settings: Settings, providers: list[str]) -> None:
-    """u2netp ONNX session for background removal (F-22)."""
+    """U²-Netp ONNX session for subject/background mask."""
     model_path = Path(settings.u2netp_model_path)
     if not model_path.exists():
         log.warning("u2netp.model_not_found", path=str(model_path))
@@ -143,7 +143,7 @@ def _load_u2netp(settings: Settings, providers: list[str]) -> None:
 
 def _load_yolo_animeface(settings: Settings, providers: list[str]) -> None:
     """
-    F-34: YOLOv8 animeface ONNX session.
+    YOLOv8 anime-face ONNX session.
     Model: Fuyucchi/yolov8_animeface (HuggingFace) exported to ONNX.
     Single-class detector; output shape [1, 5, N] (cx,cy,w,h,conf).
     Optional — service runs in human-only mode if file is missing.
@@ -168,9 +168,9 @@ def _load_yolo_animeface(settings: Settings, providers: list[str]) -> None:
 
 def _load_anime_landmarks_28(settings: Settings, providers: list[str]) -> None:
     """
-    F-34-LM: Optional 28-point anime landmark ONNX model.
+    Optional 28-point anime landmark ONNX model.
     Loaded only when the model file exists. When absent, clients fall back to
-    bbox + grid — the spec mandates graceful degradation.
+    bbox + grid — graceful degradation per API contract.
     """
     model_path = Path(settings.anime_landmarks_28_model_path)
     if not model_path.exists():

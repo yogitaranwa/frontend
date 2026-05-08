@@ -1,6 +1,6 @@
 /**
  * ReferenceRepositoryImpl.kt
- * Responsibility : Implements ReferenceRepository using Room DAO (F-31 local history).
+ * Responsibility : Implements ReferenceRepository using Room DAO (local reference history).
  * Pattern used   : Repository implementation
  * Dependencies   : ReferenceAssetDao, ReferenceMapper
  */

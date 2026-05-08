@@ -38,13 +38,13 @@ class Settings(BaseSettings):
         alias="U2NETP_MODEL_PATH",
     )
 
-    # ── F-34: YOLOv8 animeface ONNX (Fuyucchi/yolov8_animeface on HuggingFace) ──
+    # ── YOLOv8 anime-face ONNX (Fuyucchi/yolov8_animeface on HuggingFace) ──
     yolo_animeface_model_path: str = Field(
         default="/app/models/yolov8_animeface.onnx",
         alias="YOLO_ANIMEFACE_MODEL_PATH",
     )
 
-    # ── F-34-LM: optional 28-point anime landmark model ──────────────────────
+    # ── Optional 28-point anime landmark model ────────────────────────────────
     anime_landmarks_28_model_path: str = Field(
         default="/app/models/anime_landmarks_28.onnx",
         alias="ANIME_LANDMARKS_28_MODEL_PATH",

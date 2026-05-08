@@ -18,7 +18,7 @@ class NormBbox(BaseModel):
     h_norm: float = Field(ge=0.0, le=1.0)
 
 
-# ── F-10 Face Detection (legacy single-face endpoint) ────────────────────────
+# ── Legacy single-face detection (`/infer/face`) ───────────────────────────────
 
 class FaceLandmark(BaseModel):
     id: int
@@ -33,7 +33,7 @@ class FaceInferResponse(BaseModel):
     inference_ms: int
 
 
-# ── F-11 Object Detection ─────────────────────────────────────────────────────
+# ── Object detection (`/infer/objects`) ───────────────────────────────────────
 
 class ObjectDetection(BaseModel):
     label: str
@@ -47,7 +47,7 @@ class ObjectInferResponse(BaseModel):
     model: str
 
 
-# ── F-34 + F-34-LM: Unified Human + Animated Face Detection ──────────────────
+# ── Unified human + animated face (`/infer/face_unified`) ─────────────────────
 
 class FaceDomain(str, Enum):
     HUMAN    = "human"
@@ -71,7 +71,7 @@ class UnifiedFaceDetection(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     bbox: NormBbox
     landmarks_68: list[FaceLandmark]
-    # F-34-LM: populated for animated faces when return_landmarks=true and model loaded.
+    # Populated for animated faces when return_landmarks=true and the model is loaded.
     landmarks_28: list[FaceLandmark]
     head_bbox_expanded: HeadBboxExpanded | None = None
 

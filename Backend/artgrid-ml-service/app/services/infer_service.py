@@ -60,7 +60,7 @@ class InferService:
     def __init__(self, models: ModelStore) -> None:
         self._models = models
 
-    # ── F-10 Face Detection (legacy single-face endpoint) ─────────────────────
+    # ── Legacy single-face detection (`/infer/face`) ───────────────────────────
 
     def infer_face(self, img_bgr: np.ndarray) -> FaceInferResponse:
         """Runs dlib HOG detector + 68-point landmark prediction on [img_bgr]."""
@@ -105,7 +105,7 @@ class InferService:
             inference_ms=elapsed_ms,
         )
 
-    # ── F-34 + F-34-LM: Unified Human + Animated Face Detection ──────────────
+    # ── Unified human + animated face detection (`/infer/face_unified`) ───────
 
     def infer_face_unified(
         self,
@@ -118,7 +118,7 @@ class InferService:
         ArtGridFaceDomainFusion: runs dlib HOG (human) and YOLOv8-animeface (animated)
         on the same image in sequence, then resolves overlapping detections with cross-head NMS.
         Each face is classified as human, animated, or unknown.
-        Optionally attaches 28-pt anime landmarks for animated faces (F-34-LM).
+        Optionally attaches 28-point anime landmarks for animated faces when that model is loaded.
         """
         request_id = str(uuid.uuid4())
         h, w = img_bgr.shape[:2]
@@ -163,7 +163,7 @@ class InferService:
             telemetry=FaceUnifiedTelemetry(domain_histogram=histogram),
         )
 
-    # ── F-11 Object Detection ─────────────────────────────────────────────────
+    # ── Object detection (`/infer/objects`) ───────────────────────────────────
 
     def infer_objects(self, img_bgr: np.ndarray) -> ObjectInferResponse:
         """Runs YOLOv8n ONNX inference; returns normalised detections above threshold."""
@@ -184,7 +184,7 @@ class InferService:
             model="yolov8n",
         )
 
-    # ── F-22 Background Removal ───────────────────────────────────────────────
+    # ── Segmentation / background mask (`/infer/segment`) ────────────────────
 
     def infer_segment(self, img_bgr: np.ndarray) -> bytes:
         """Runs u2netp ONNX salient-object segmentation; returns alpha mask PNG bytes."""
@@ -344,7 +344,7 @@ class InferService:
         self, img_rgb: np.ndarray, bbox: NormBbox, w: int, h: int
     ) -> list[FaceLandmark]:
         """
-        F-34-LM: Runs the optional 28-point anime landmark model on the face crop.
+        Runs the optional 28-point anime landmark model on the face crop.
         Returns 28 landmarks normalised to the full-image coordinate space.
         Falls back to empty list on any inference error.
         """

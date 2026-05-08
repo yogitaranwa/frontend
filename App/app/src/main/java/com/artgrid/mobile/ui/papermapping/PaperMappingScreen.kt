@@ -1,6 +1,6 @@
 /**
  * PaperMappingScreen.kt
- * Responsibility : F-29 paper-to-paper rescaling UI.
+ * Responsibility : Paper-to-paper rescaling UI.
  *                  Shows source/destination paper pickers, cm grid overlay, and scaled
  *                  measurement table. All arithmetic is pure; no ML calls.
  * Pattern used   : Stateless composable + HiltViewModel

@@ -1,7 +1,7 @@
 /**
  * BackgroundRemoverScreen.kt
- * Responsibility : F-22 Background Removal — displays the segmentation result in three view
- *                  modes: Original, Isolated Subject (masked), Alpha Mask.
+ * Responsibility : Segmentation / background mask preview — three view modes:
+ *                  Original, Isolated Subject (masked), Alpha Mask.
  *                  Allows exporting both the isolated subject and the alpha mask as PNG.
  *                  This is a DISTINCT screen from FaceStudioScreen and ObjectLocatorScreen.
  * API calls      : none (consumes SegmentResult mask bytes passed via nav)

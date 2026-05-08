@@ -1,7 +1,7 @@
 /**
  * MlMapper.kt
  * Responsibility : Maps ML DTOs to domain models. No business logic — pure structural mapping.
- *                  Includes F-34 unified face mapping.
+ *                  Includes unified face DTO ↔ domain mapping.
  * API calls      : none (mapping only)
  * Injects        : none (object with extension functions)
  */
@@ -72,7 +72,7 @@ object MlMapper {
         gpuAvailable = gpuAvailable,
     )
 
-    // ── F-34 Unified Face ─────────────────────────────────────────────────────
+    // ── Unified face ───────────────────────────────────────────────────────────
 
     private fun String.toFaceDomain(): FaceDomain = when (this.lowercase()) {
         "human"    -> FaceDomain.HUMAN

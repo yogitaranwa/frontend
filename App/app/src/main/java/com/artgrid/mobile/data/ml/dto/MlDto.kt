@@ -30,7 +30,7 @@ data class FaceLandmarkDto(
     @Json(name = "y_norm") val yNorm: Float,
 )
 
-/** F-10 response body from POST /infer/face. */
+/** Response body from POST /infer/face. */
 @JsonClass(generateAdapter = true)
 data class FaceInferResponseDto(
     @Json(name = "face_detected") val faceDetected: Boolean,
@@ -49,7 +49,7 @@ data class ObjectDetectionDto(
     @Json(name = "bbox")       val bbox: NormBboxDto,
 )
 
-/** F-11 response body from POST /infer/objects. */
+/** Response body from POST /infer/objects. */
 @JsonClass(generateAdapter = true)
 data class ObjectInferResponseDto(
     @Json(name = "detections")   val detections: List<ObjectDetectionDto>,
@@ -61,9 +61,9 @@ data class ObjectInferResponseDto(
 // That response is handled as ResponseBody in MlApiService and converted
 // to ByteArray in MlRepositoryImpl — no DTO needed.
 
-// ── /infer/face_unified (F-34) ───────────────────────────────────────────────
+// ── /infer/face_unified (unified face) ───────────────────────────────────────
 
-/** Single 28-point anime landmark (F-34-LM, conditional). */
+/** Single 28-point anime landmark (optional model). */
 @JsonClass(generateAdapter = true)
 data class FaceLandmark28Dto(
     @Json(name = "id")     val id: Int,
@@ -89,7 +89,7 @@ data class FaceDetectionDto(
     @Json(name = "bbox")                val bbox: NormBboxDto,
     @Json(name = "head_bbox_expanded")  val headBboxExpanded: HeadBboxExpandedDto?,
     @Json(name = "landmarks_68")        val landmarks68: List<FaceLandmarkDto>,   // non-empty for human only
-    @Json(name = "landmarks_28")        val landmarks28: List<FaceLandmark28Dto>, // non-empty if F-34-LM enabled
+    @Json(name = "landmarks_28")        val landmarks28: List<FaceLandmark28Dto>, // non-empty when optional landmark model enabled
     @Json(name = "eye_distance_norm")   val eyeDistanceNorm: Float?,
     @Json(name = "gamma_estimate")      val gammaEstimate: Float?,                // animated only
 )
@@ -103,7 +103,7 @@ data class FaceUnifiedTelemetryDto(
     @Json(name = "total_ms")         val totalMs: Int,
 )
 
-/** F-34 · Unified face detection response from POST /infer/face_unified. */
+/** Unified face detection response from POST /infer/face_unified. */
 @JsonClass(generateAdapter = true)
 data class FaceUnifiedResponseDto(
     @Json(name = "faces")           val faces: List<FaceDetectionDto>,

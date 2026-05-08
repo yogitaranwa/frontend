@@ -266,7 +266,7 @@ fun HomeScreen(
                         modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
 
-                    // Crop (F-28)
+                    // Crop
                     OnDeviceCard(
                         title       = "Crop Image",
                         description = "Non-destructive in-app crop with draggable handles. Lock aspect ratios (A4, A5, 16:9, 1:1 …) or use freehand.",
@@ -279,7 +279,7 @@ fun HomeScreen(
                         modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
 
-                    // Paper Mapping (F-29)
+                    // Paper mapping
                     OnDeviceCard(
                         title       = "Paper Mapping",
                         description = "Map image from one paper size to another (A5 → A3). cm grid overlay, opacity/spacing controls, measurement scaler.",
@@ -292,7 +292,7 @@ fun HomeScreen(
                         modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
 
-                    // Trace Mode (F-27-MVP)
+                    // Trace mode
                     OnDeviceCard(
                         title       = "Trace Mode",
                         description = "Camera underlay — overlay your reference image on the live camera feed. Pan, pinch, rotate, and adjust opacity.",
@@ -318,7 +318,7 @@ fun HomeScreen(
                     SectionHeader("Studio", Icons.Outlined.Layers, Color(0xFFC85C3A),
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp))
 
-                    // Reference History (F-31)
+                    // Reference history
                     OnDeviceCard(
                         title       = "Reference History",
                         description = "Browse saved reference images, filter by tag, re-open in any tool. Save to local library directly from gallery.",
@@ -331,7 +331,7 @@ fun HomeScreen(
                         modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
 
-                    // Progression Comparator (F-32)
+                    // Progression comparator
                     OnDeviceCard(
                         title       = "Progression Comparator",
                         description = "Track your artwork journey stage-by-stage. Side-by-side compare sketch → ink → color passes with grid overlay.",
@@ -344,7 +344,7 @@ fun HomeScreen(
                         modifier    = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
 
-                    // F-34 Unified Face — ML gated
+                    // Unified face (ML gated)
                     if (serverOk) {
                         OnDeviceCard(
                             title       = "Unified Face Studio",

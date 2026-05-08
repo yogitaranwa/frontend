@@ -13,14 +13,14 @@ import com.artgrid.mobile.domain.auth.model.AuthSession
 interface AuthRepository {
 
     /**
-     * F-00 · Google Sign-In.
+     * Google sign-in.
      * [idToken]: the ID token obtained from the Google Sign-In SDK.
      * In DEMO_MODE this is an empty string and the server accepts it unconditionally.
      */
     suspend fun signInWithGoogle(idToken: String): ApiResult<AuthSession>
 
     /**
-     * F-00 · Silent token refresh.
+     * Silent token refresh.
      * Should be called when the stored JWT is within 5 minutes of expiry.
      * Returns a new [AuthSession] with an updated [AuthSession.accessToken].
      */

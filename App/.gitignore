@@ -1,4 +1,3 @@
-# ArtGrid Android — .gitignore
 **/build/
 *.iml
 .gradle/
@@ -12,8 +11,6 @@
 .externalNativeBuild
 .cxx
 *.jks
-
-# Never commit secrets or local config
 demo.properties
 *.keystore
 google-services.json

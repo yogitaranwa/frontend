@@ -1,6 +1,6 @@
 /**
  * ReferenceAsset.kt
- * Responsibility : Domain model for a saved reference image (F-31 local history).
+ * Responsibility : Domain model for a saved reference image (local history).
  * Pattern used   : Immutable domain model
  * Dependencies   : none
  */

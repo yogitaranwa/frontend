@@ -1,6 +1,6 @@
 /**
  * SseReader.kt
- * Responsibility : Consumes an OkHttp streaming response for the F-24 AI chatbot SSE endpoint
+ * Responsibility : Consumes OkHttp streaming response chunks for AI chat SSE
  *                  and emits parsed [SseEvent] objects on a Kotlin Flow.
  * API calls      : POST /api/v1/chat (SSE transport layer only — parsing only)
  * Injects        : none (pure function utility)

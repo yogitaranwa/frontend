@@ -1,7 +1,7 @@
 /**
  * MlModels.kt
  * Responsibility : Domain models for all ML inference results — zero Retrofit/Moshi annotations.
- *                  Includes F-34 unified face domain types.
+ *                  Includes unified human + anime face domain types.
  * API calls      : none (pure domain types)
  * Injects        : none
  */
@@ -17,7 +17,7 @@ data class NormBbox(
     val hNorm: Float,
 )
 
-// ── F-10 Face Detection ──────────────────────────────────────────────────────
+// ── Legacy face detection (`/infer/face`) ─────────────────────────────────────
 
 /** Single dlib 68-point facial landmark in normalised coordinates. */
 data class FaceLandmark(
@@ -37,7 +37,7 @@ data class FaceResult(
     val inferenceMs: Int,
 )
 
-// ── F-11 Object Localisation ─────────────────────────────────────────────────
+// ── Object detection (`/infer/objects`) ───────────────────────────────────────
 
 /** Single YOLOv8n detection with label, confidence, and normalised bounding box. */
 data class ObjectDetection(
@@ -56,7 +56,7 @@ data class ObjectInferResult(
     val model: String,
 )
 
-// ── F-22 Background Removal ───────────────────────────────────────────────────
+// ── Segmentation mask (`/infer/segment`) ───────────────────────────────────────
 
 /**
  * Result of POST /infer/segment.
@@ -73,7 +73,7 @@ data class SegmentResult(
     override fun hashCode(): Int = maskPng.contentHashCode()
 }
 
-// ── F-34 Unified Face Detection ───────────────────────────────────────────────
+// ── Unified face (`/infer/face_unified`) ────────────────────────────────────
 
 /** Which pipeline detected this face: human (dlib), animated (YOLOv8-animeface), or fused. */
 enum class FaceDomain { HUMAN, ANIMATED, AMBIGUOUS }
@@ -101,7 +101,7 @@ data class FaceDetection(
     val bbox: NormBbox,
     val headBboxExpanded: HeadBboxExpanded?,
     val landmarks68: List<FaceLandmark>,       // non-empty for HUMAN
-    val landmarks28: List<FaceLandmark28>,     // non-empty if F-34-LM model is loaded
+    val landmarks28: List<FaceLandmark28>,     // non-empty when optional anime landmark model is loaded
     val eyeDistanceNorm: Float?,
     val gammaEstimate: Float?,                 // ANIMATED only
 )
